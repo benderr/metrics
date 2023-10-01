@@ -108,6 +108,7 @@ func TestUpdateCounterMetricHandler(t *testing.T) {
 			UpdateCounterMetricHandler(&store)(w, request)
 
 			res := w.Result()
+			defer res.Body.Close()
 			// проверяем код ответа
 			assert.Equal(t, test.want.code, res.StatusCode)
 			assert.EqualValues(t, store.Counters, test.want.counters)
@@ -170,6 +171,7 @@ func TestUpdateGaugeMetricHandler(t *testing.T) {
 			UpdateGaugeMetricHandler(&store)(w, request)
 
 			res := w.Result()
+			defer res.Body.Close()
 			// проверяем код ответа
 			assert.Equal(t, test.want.code, res.StatusCode)
 			assert.EqualValues(t, store.Gauges, test.want.gauges)
