@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"net/http"
 
 	"github.com/benderr/metrics/cmd/handlers"
@@ -8,12 +10,13 @@ import (
 )
 
 func main() {
-
+	flag.Parse()
 	var store storage.MemoryRepository = &storage.MemStorage{}
 
 	r := handlers.MakeRouter(store)
 
-	err := http.ListenAndServe(`:8080`, r)
+	fmt.Println("Started on", server)
+	err := http.ListenAndServe(string(*server), r)
 	if err != nil {
 		panic(err)
 	}

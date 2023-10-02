@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"sync"
 	"time"
@@ -9,12 +10,11 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-var pollInterval = 2
-var reportInterval = 10
-var server = "http://localhost:8080"
-
 func main() {
-	client := resty.New().SetBaseURL(server)
+	flag.Parse()
+
+	client := resty.New().SetBaseURL(string(*server))
+	fmt.Printf("Started with params: \n -address %v\n -report interval %v \n -pool interval %v \n\n", server, reportInterval, pollInterval)
 	ch := make(chan bool, 1)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
