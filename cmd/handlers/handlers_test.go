@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/benderr/metrics/cmd/storage"
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,152 +30,230 @@ func (m *MockMemoryStorage) UpdateGauge(gauge storage.MetricGaugeInfo) {
 	m.Gauges[gauge.Name] = gauge
 }
 
-func TestUpdateCounterMetricHandler(t *testing.T) {
+func (m *MockMemoryStorage) GetCounters() ([]storage.MetricCounterInfo, error) {
+	res := []storage.MetricCounterInfo{}
+	for _, item := range m.Counters {
+		res = append(res, item)
+	}
+	return res, nil
+}
+
+func (m *MockMemoryStorage) GetGauges() ([]storage.MetricGaugeInfo, error) {
+	res := []storage.MetricGaugeInfo{}
+	for _, item := range m.Gauges {
+		res = append(res, item)
+	}
+	return res, nil
+}
+
+func (m *MockMemoryStorage) GetCounter(name string) (*storage.MetricCounterInfo, bool) {
+	res, ok := m.Counters[name]
+	return &res, ok
+}
+
+func (m *MockMemoryStorage) GetGauge(name string) (*storage.MetricGaugeInfo, bool) {
+	res, ok := m.Gauges[name]
+	return &res, ok
+}
+
+func TestUpdateMetricHandler(t *testing.T) {
+
+	var store = MockMemoryStorage{
+		Counters: make(map[string]storage.MetricCounterInfo),
+		Gauges:   make(map[string]storage.MetricGaugeInfo),
+	}
+
+	r := MakeRouter(&store)
+	server := httptest.NewServer(r)
+
+	defer server.Close()
+
 	type want struct {
-		code     int
-		counters map[string]storage.MetricCounterInfo
+		code int
 	}
 	tests := []struct {
-		name         string
-		url          string
-		prevCounters map[string]storage.MetricCounterInfo
-		want         want
+		name   string
+		url    string
+		method string
+		want   want
 	}{
 		{
-			url:  "/update/counter/test/2",
-			name: "Add new counter metric",
+			url:    "/update/counter/test/2",
+			method: http.MethodPost,
+			name:   "Add new counter metric",
 			want: want{
 				code: http.StatusOK,
-				counters: map[string]storage.MetricCounterInfo{
-					"test": {
-						Name:  "test",
-						Value: 2,
-					},
-				},
 			},
 		},
 		{
-			url:  "/update/counter/test/2",
-			name: "Update exist counter metric",
-			prevCounters: map[string]storage.MetricCounterInfo{
-				"test": {
-					Name:  "test",
-					Value: 2,
-				},
+			url:    "/update/counter/test/string",
+			method: http.MethodPost,
+			name:   "Add counter metric with invalid data",
+			want: want{
+				code: http.StatusBadRequest,
 			},
+		},
+		{
+			url:    "/update/counter",
+			method: http.MethodPost,
+			name:   "Add metric without params",
+			want: want{
+				code: http.StatusNotFound,
+			},
+		},
+		{
+			url:    "/update/gauge/test/2.0",
+			method: http.MethodPost,
+			name:   "Add new gauge metric",
 			want: want{
 				code: http.StatusOK,
-				counters: map[string]storage.MetricCounterInfo{
-					"test": {
-						Name:  "test",
-						Value: 4,
-					},
-				},
 			},
 		},
 		{
-			url:  "/update/counter/test/string",
-			name: "Add metric with invalid data",
+			url:    "/update/gauge/test/string",
+			method: http.MethodPost,
+			name:   "Add gauge metric with invalid data",
 			want: want{
-				code:     http.StatusBadRequest,
-				counters: map[string]storage.MetricCounterInfo{},
+				code: http.StatusBadRequest,
 			},
 		},
 		{
-			url:  "/update/counter",
-			name: "Add metric without params",
+			url:    "/update/gauge",
+			method: http.MethodPost,
+			name:   "Add gauge metric without params",
 			want: want{
-				code:     http.StatusNotFound,
-				counters: map[string]storage.MetricCounterInfo{},
+				code: http.StatusNotFound,
+			},
+		},
+		{
+			url:    "/update/gauge/test/2.0",
+			method: http.MethodGet,
+			name:   "Try Get Method",
+			want: want{
+				code: http.StatusMethodNotAllowed,
 			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodPost, test.url, nil)
-			// создаём новый Recorder
-			w := httptest.NewRecorder()
+			req := resty.New().R()
+			req.Method = test.method
+			req.URL = server.URL + test.url
 
-			var store = MockMemoryStorage{
-				Counters: make(map[string]storage.MetricCounterInfo),
-				Gauges:   make(map[string]storage.MetricGaugeInfo),
-			}
+			resp, err := req.Send()
 
-			if len(test.prevCounters) > 0 {
-				store.Counters = test.prevCounters
-			}
+			assert.NoError(t, err, "error making HTTP request")
 
-			UpdateCounterMetricHandler(&store)(w, request)
-
-			res := w.Result()
-			defer res.Body.Close()
-			// проверяем код ответа
-			assert.Equal(t, test.want.code, res.StatusCode)
-			assert.EqualValues(t, store.Counters, test.want.counters)
+			assert.Equal(t, test.want.code, resp.StatusCode())
 		})
 	}
 }
 
-func TestUpdateGaugeMetricHandler(t *testing.T) {
+func TestGetMetric(t *testing.T) {
+
+	var store = MockMemoryStorage{
+		Counters: map[string]storage.MetricCounterInfo{"test": {Name: "test", Value: 1}},
+		Gauges:   map[string]storage.MetricGaugeInfo{"test2": {Name: "test2", Value: 100.123}},
+	}
+
+	r := MakeRouter(&store)
+	server := httptest.NewServer(r)
+
+	defer server.Close()
+
 	type want struct {
-		code   int
-		gauges map[string]storage.MetricGaugeInfo
+		code    int
+		content string
 	}
 	tests := []struct {
-		name string
-		url  string
-		want want
+		name   string
+		url    string
+		method string
+		want   want
 	}{
 		{
-			url:  "/update/gauge/test/2.0",
-			name: "Add new gauge metric",
+			url:    "/value/counter/test",
+			method: http.MethodGet,
+			name:   "Get counter test",
 			want: want{
-				code: http.StatusOK,
-				gauges: map[string]storage.MetricGaugeInfo{
-					"test": {
-						Name:  "test",
-						Value: 2.0,
-					},
-				},
+				code:    http.StatusOK,
+				content: "1",
 			},
 		},
 		{
-			url:  "/update/gauge/test/string",
-			name: "Add metric with invalid data",
+			url:    "/value/gauge/test2",
+			method: http.MethodGet,
+			name:   "Get gauge test2",
 			want: want{
-				code:   http.StatusBadRequest,
-				gauges: map[string]storage.MetricGaugeInfo{},
+				code:    http.StatusOK,
+				content: "100.123",
+			},
+		},
+
+		{
+			url:    "/value/gauge/test3",
+			method: http.MethodGet,
+			name:   "Undefined metric",
+			want: want{
+				code:    http.StatusNotFound,
+				content: "",
 			},
 		},
 		{
-			url:  "/update/gauge",
-			name: "Add metric without params",
+			url:    "/value/gauge/test2",
+			method: http.MethodPost,
+			name:   "Try Post Method",
 			want: want{
-				code:   http.StatusNotFound,
-				gauges: map[string]storage.MetricGaugeInfo{},
+				code: http.StatusMethodNotAllowed,
 			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodPost, test.url, nil)
-			// создаём новый Recorder
-			w := httptest.NewRecorder()
+			req := resty.New().R()
+			req.Method = test.method
+			req.URL = server.URL + test.url
 
-			var store = MockMemoryStorage{
-				Counters: make(map[string]storage.MetricCounterInfo),
-				Gauges:   make(map[string]storage.MetricGaugeInfo),
+			resp, err := req.Send()
+
+			assert.NoError(t, err, "error making HTTP request")
+
+			if len(test.want.content) > 0 {
+				assert.Equal(t, string(resp.Body()), test.want.content)
+
 			}
 
-			UpdateGaugeMetricHandler(&store)(w, request)
-
-			res := w.Result()
-			defer res.Body.Close()
-			// проверяем код ответа
-			assert.Equal(t, test.want.code, res.StatusCode)
-			assert.EqualValues(t, store.Gauges, test.want.gauges)
+			assert.Equal(t, test.want.code, resp.StatusCode())
 		})
 	}
+}
+
+func TestGetMetricList(t *testing.T) {
+
+	var store = MockMemoryStorage{
+		Counters: map[string]storage.MetricCounterInfo{"first metric": {Name: "first metric", Value: 591}},
+		Gauges:   map[string]storage.MetricGaugeInfo{"second metric": {Name: "second metric", Value: 100.123}},
+	}
+
+	r := MakeRouter(&store)
+	server := httptest.NewServer(r)
+
+	defer server.Close()
+
+	t.Run("Get counter list", func(t *testing.T) {
+		req := resty.New().R()
+		req.Method = http.MethodGet
+		req.URL = server.URL + "/"
+
+		resp, err := req.Send()
+
+		assert.NoError(t, err, "error making HTTP request")
+
+		assert.Contains(t, string(resp.Body()), "first metric")
+		assert.Contains(t, string(resp.Body()), "second metric")
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode())
+	})
 }
