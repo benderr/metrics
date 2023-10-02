@@ -19,9 +19,7 @@ func main() {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	var stored metrics.MetricsReadWrite
-
-	stored = &metrics.Metrics{
+	stored := &metrics.Metrics{
 		Gauges:  make(map[string]float64),
 		Counter: make(map[string]int),
 	}
