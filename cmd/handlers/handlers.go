@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/benderr/metrics/cmd/storage"
 	"github.com/benderr/metrics/cmd/validate"
@@ -62,7 +63,7 @@ func GetMetricHandler(store storage.MemoryRepository) http.HandlerFunc {
 		case string(storage.Gauge):
 			if metric, ok := store.GetGauge(name); ok {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(fmt.Sprintf("%.3f", metric.Value)))
+				w.Write([]byte(strconv.FormatFloat(metric.Value, 'f', -1, 64)))
 				return
 			}
 		}

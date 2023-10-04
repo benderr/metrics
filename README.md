@@ -49,10 +49,21 @@ metricstest -test.v -test.run="^TestIteration3[AB]*$" \
 
 ### iter 4
 
+SERVER_PORT=8085
+          TEMP_FILE=./temp
+          metricstest -test.v -test.run="^TestIteration4$" \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server \
+            -server-port=$SERVER_PORT \
+            -source-path=.
+
+
+### iter 5
+
 SERVER_PORT=8081
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=./temp
-          metricstest -test.v -test.run="^TestIteration4$" \
+          metricstest -test.v -test.run="^TestIteration5$" \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
             -server-port=$SERVER_PORT \

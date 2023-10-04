@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"os"
 	"regexp"
 )
 
@@ -32,4 +33,8 @@ var server = new(ServerAddress)
 func init() {
 	*server = ":8080"
 	flag.Var(server, "a", "address and port to run server")
+
+	if address, ok := os.LookupEnv("ADDRESS"); ok {
+		server.Set(address)
+	}
 }

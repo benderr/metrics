@@ -154,7 +154,7 @@ func TestGetMetric(t *testing.T) {
 
 	var store = MockMemoryStorage{
 		Counters: map[string]storage.MetricCounterInfo{"test": {Name: "test", Value: 1}},
-		Gauges:   map[string]storage.MetricGaugeInfo{"test2": {Name: "test2", Value: 100.123}},
+		Gauges:   map[string]storage.MetricGaugeInfo{"test2": {Name: "test2", Value: 100.1200}},
 	}
 
 	r := MakeRouter(&store)
@@ -187,7 +187,7 @@ func TestGetMetric(t *testing.T) {
 			name:   "Get gauge test2",
 			want: want{
 				code:    http.StatusOK,
-				content: "100.123",
+				content: "100.12",
 			},
 		},
 
@@ -234,7 +234,7 @@ func TestGetMetricList(t *testing.T) {
 
 	var store = MockMemoryStorage{
 		Counters: map[string]storage.MetricCounterInfo{"first metric": {Name: "first metric", Value: 591}},
-		Gauges:   map[string]storage.MetricGaugeInfo{"second metric": {Name: "second metric", Value: 100.123}},
+		Gauges:   map[string]storage.MetricGaugeInfo{"second metric": {Name: "second metric", Value: 100.1200}},
 	}
 
 	r := MakeRouter(&store)

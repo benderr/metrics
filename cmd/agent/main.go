@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"sync"
 	"time"
@@ -11,10 +10,10 @@ import (
 )
 
 func main() {
-	flag.Parse()
+	ParseConfig()
 
-	client := resty.New().SetBaseURL(string(*server))
-	fmt.Printf("Started with params: \n -address %v\n -report interval %v \n -pool interval %v \n\n", server, reportInterval, pollInterval)
+	client := resty.New().SetBaseURL(string(config.Server))
+	fmt.Printf("Started with params: \n -address %v\n -report interval %v \n -pool interval %v \n\n", config.Server, config.ReportInterval, config.PollInterval)
 	ch := make(chan bool, 1)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -27,13 +26,13 @@ func main() {
 	go func() {
 		for {
 			ch <- true
-			time.Sleep(time.Duration(pollInterval) * time.Second)
+			time.Sleep(time.Duration(config.PollInterval) * time.Second)
 		}
 	}()
 
 	go func(m metrics.MetricsReadWrite) {
 		for {
-			time.Sleep(time.Duration(reportInterval) * time.Second)
+			time.Sleep(time.Duration(config.ReportInterval) * time.Second)
 			metrics.SendMetrics(m, client)
 		}
 	}(stored)
