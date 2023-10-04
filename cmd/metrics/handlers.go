@@ -20,13 +20,7 @@ func sendMetrics(m *Metrics, client *resty.Client) {
 	for name, value := range m.Gauges {
 		go func(name string, value float64) {
 			url := fmt.Sprintf("/%v/%v/%v/%v", "update", "gauge", name, value)
-			//fmt.Println("try send gauge", url)
-			response, err := client.R().Post(url)
-			if err != nil {
-				//fmt.Println("error counter", err)
-			} else {
-				fmt.Println("finish gauge", response.StatusCode())
-			}
+			client.R().Post(url)
 		}(name, value)
 	}
 }
