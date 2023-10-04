@@ -21,7 +21,7 @@ func (address *ServerAddress) Set(flagValue string) error {
 		return errors.New("empty address not valid")
 	}
 
-	reg := regexp.MustCompile(`^[0-9A-Za-z\.]+(\:[0-9]+)?$`)
+	reg := regexp.MustCompile(`^(https?://)?[0-9A-Za-z\.]+(\:[0-9]+)?$`)
 
 	if !reg.MatchString(flagValue) {
 		return errors.New("invalid address and port")
@@ -29,10 +29,6 @@ func (address *ServerAddress) Set(flagValue string) error {
 	*address = ServerAddress(flagValue)
 	return nil
 }
-
-// var server = new(ServerAddress)
-// var pollInterval int
-// var reportInterval int
 
 type EnvConfig struct {
 	Server         ServerAddress `env:"ADDRESS"`

@@ -2,46 +2,45 @@ package main
 
 import (
 	"fmt"
-	"sync"
-	"time"
 
 	"github.com/benderr/metrics/cmd/metrics"
-	"github.com/go-resty/resty/v2"
 )
 
 func main() {
 	ParseConfig()
 
-	client := resty.New().SetBaseURL(string(config.Server))
 	fmt.Printf("Started with params: \n -address %v\n -report interval %v \n -pool interval %v \n\n", config.Server, config.ReportInterval, config.PollInterval)
-	ch := make(chan bool, 1)
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 
-	stored := &metrics.Metrics{
-		Gauges:  make(map[string]float64),
-		Counter: make(map[string]int),
-	}
+	<-metrics.StartAgent(config.PollInterval, config.ReportInterval, string(config.Server))
 
-	go func() {
-		for {
-			ch <- true
-			time.Sleep(time.Duration(config.PollInterval) * time.Second)
-		}
-	}()
+	//ch := make(chan bool, 1)
+	//wg := sync.WaitGroup{}
+	//wg.Add(1)
 
-	go func(m metrics.MetricsReadWrite) {
-		for {
-			time.Sleep(time.Duration(config.ReportInterval) * time.Second)
-			metrics.SendMetrics(m, client)
-		}
-	}(stored)
+	// stored := &metrics.Metrics{
+	// 	Gauges:  make(map[string]float64),
+	// 	Counter: make(map[string]int),
+	// }
 
-	for v := range ch {
-		fmt.Println("Refresh metrics", v)
-		stored.Write()
-	}
+	// go func() {
+	// 	for {
+	// 		ch <- true
+	// 		time.Sleep(time.Duration(config.PollInterval) * time.Second)
+	// 	}
+	// }()
 
-	wg.Wait()
+	// go func(m metrics.MetricsReadWrite) {
+	// 	for {
+	// 		time.Sleep(time.Duration(config.ReportInterval) * time.Second)
+	// 		metrics.SendMetrics(m, client)
+	// 	}
+	// }(stored)
+
+	// for v := range ch {
+	// 	fmt.Println("Refresh metrics", v)
+	// 	stored.Write()
+	// }
+
+	// wg.Wait()
 
 }
