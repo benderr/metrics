@@ -1,22 +1,22 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"net/http"
 
-	"github.com/benderr/metrics/cmd/handlers"
-	"github.com/benderr/metrics/cmd/storage"
+	"github.com/benderr/metrics/cmd/config/serverconfig"
+	"github.com/benderr/metrics/internal/handlers"
+	"github.com/benderr/metrics/internal/storage"
 )
 
 func main() {
-	flag.Parse()
+	config := serverconfig.Parse()
 	var store storage.MemoryRepository = &storage.MemStorage{}
 
-	r := handlers.MakeRouter(store)
+	r := handlers.NewRouter(store)
 
-	fmt.Println("Started on", server)
-	err := http.ListenAndServe(string(*server), r)
+	fmt.Println("Started on", config.Server)
+	err := http.ListenAndServe(string(config.Server), r)
 	if err != nil {
 		panic(err)
 	}
