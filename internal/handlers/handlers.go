@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"github.com/benderr/metrics/internal/storage"
 	"github.com/benderr/metrics/internal/validate"
@@ -68,7 +68,7 @@ func (a *AppHandlers) GetMetricHandler() http.HandlerFunc {
 		case string(storage.Gauge):
 			if metric, ok := a.store.GetGauge(name); ok {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(strconv.FormatFloat(metric.Value, 'f', -1, 64)))
+				w.Write([]byte(formatGauge(metric.Value)))
 				return
 			}
 		}
@@ -105,4 +105,9 @@ func (a *AppHandlers) GetMetricListHandler() http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Write(output.Bytes())
 	}
+}
+
+func formatGauge(v float64) string {
+	//return strconv.FormatFloat(v, 'f', -1, 64)
+	return strings.TrimRight(fmt.Sprintf("%.3f", v), "0")
 }

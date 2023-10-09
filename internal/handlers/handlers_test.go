@@ -154,7 +154,10 @@ func TestGetMetric(t *testing.T) {
 
 	var store = MockMemoryStorage{
 		Counters: map[string]storage.MetricCounterInfo{"test": {Name: "test", Value: 1}},
-		Gauges:   map[string]storage.MetricGaugeInfo{"test2": {Name: "test2", Value: 100.1200}},
+		Gauges: map[string]storage.MetricGaugeInfo{
+			"test2":  {Name: "test2", Value: 100.1200},
+			"test22": {Name: "test22", Value: 806132.0},
+		},
 	}
 
 	h := NewHandlers(&store)
@@ -188,6 +191,15 @@ func TestGetMetric(t *testing.T) {
 			want: want{
 				code:    http.StatusOK,
 				content: "100.12",
+			},
+		},
+		{
+			url:    "/value/gauge/test22",
+			method: http.MethodGet,
+			name:   "Get gauge test22",
+			want: want{
+				code:    http.StatusOK,
+				content: "806132.",
 			},
 		},
 
