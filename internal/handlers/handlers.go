@@ -11,34 +11,39 @@ import (
 	"github.com/go-chi/chi"
 )
 
-func ListOfMetricsHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Список"))
+type AppHandlers struct {
+	store storage.MemoryRepository
 }
 
-func NewRouter(store storage.MemoryRepository) *chi.Mux {
+func NewHandlers(store storage.MemoryRepository) AppHandlers {
+	return AppHandlers{
+		store: store,
+	}
+}
+
+func (a *AppHandlers) NewRouter() *chi.Mux {
 	r := chi.NewRouter()
 
-	r.Get("/", GetMetricListHandler(store))
-	r.Post("/update/{type}/{name}/{value}", UpdateMetricHandler(store))
-	r.Get("/value/{type}/{name}", GetMetricHandler(store))
+	r.Get("/", a.GetMetricListHandler())
+	r.Post("/update/{type}/{name}/{value}", a.UpdateMetricHandler())
+	r.Get("/value/{type}/{name}", a.GetMetricHandler())
 	return r
 }
 
-func UpdateMetricHandler(store storage.MemoryRepository) http.HandlerFunc {
+func (a *AppHandlers) UpdateMetricHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		memType := chi.URLParam(r, "type")
 		name := chi.URLParam(r, "name")
 		value := chi.URLParam(r, "value")
 
 		if metric, err := validate.ParseCounter(memType, name, value); err == nil {
-			store.UpdateCounter(metric)
+			a.store.UpdateCounter(metric)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 
 		if metric, err := validate.ParseGauge(memType, name, value); err == nil {
-			store.UpdateGauge(metric)
+			a.store.UpdateGauge(metric)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
@@ -47,21 +52,21 @@ func UpdateMetricHandler(store storage.MemoryRepository) http.HandlerFunc {
 	}
 }
 
-func GetMetricHandler(store storage.MemoryRepository) http.HandlerFunc {
+func (a *AppHandlers) GetMetricHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		memType := chi.URLParam(r, "type")
 		name := chi.URLParam(r, "name")
 
 		switch memType {
 		case string(storage.Counter):
-			if metric, ok := store.GetCounter(name); ok {
+			if metric, ok := a.store.GetCounter(name); ok {
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(fmt.Sprintf("%v", metric.Value)))
 				return
 			}
 
 		case string(storage.Gauge):
-			if metric, ok := store.GetGauge(name); ok {
+			if metric, ok := a.store.GetGauge(name); ok {
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(strconv.FormatFloat(metric.Value, 'f', -1, 64)))
 				return
@@ -72,14 +77,14 @@ func GetMetricHandler(store storage.MemoryRepository) http.HandlerFunc {
 	}
 }
 
-func GetMetricListHandler(store storage.MemoryRepository) http.HandlerFunc {
+func (a *AppHandlers) GetMetricListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var output bytes.Buffer
 
 		output.WriteString("<table>")
 
-		counters, err := store.GetCounters()
-		gauges, err2 := store.GetGauges()
+		counters, err := a.store.GetCounters()
+		gauges, err2 := a.store.GetGauges()
 
 		if err != nil || err2 != nil {
 			w.WriteHeader(http.StatusInternalServerError)

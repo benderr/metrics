@@ -7,7 +7,21 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-func sendMetrics(m *Metrics, client *resty.Client) {
+type Agent struct {
+	PoolInterval   int
+	ReportInterval int
+	Server         string
+}
+
+func NewAgent(poolInterval int, reportInterval int, server string) *Agent {
+	return &Agent{
+		PoolInterval:   poolInterval,
+		ReportInterval: reportInterval,
+		Server:         server,
+	}
+}
+
+func (a *Agent) SendMetrics(m *Metrics, client *resty.Client) {
 	for name, value := range m.Counters {
 		go func(name string, value int) {
 			url := fmt.Sprintf("/%v/%v/%v/%v", "update", "counter", name, value)
@@ -23,28 +37,14 @@ func sendMetrics(m *Metrics, client *resty.Client) {
 	}
 }
 
-type Agent struct {
-	PoolInterval   int
-	ReportInterval int
-	Server         string
-}
-
-func NewAgent(poolInterval int, reportInterval int, server string) *Agent {
-	return &Agent{
-		PoolInterval:   poolInterval,
-		ReportInterval: reportInterval,
-		Server:         server,
-	}
-}
-
-func (agent *Agent) Run() <-chan struct{} {
+func (a *Agent) Run() <-chan struct{} {
 	done := make(chan struct{})
 
 	go func() {
 		defer close(done)
 
-		pollTicker := time.NewTicker(time.Second * time.Duration(agent.PoolInterval))
-		reportTicker := time.NewTicker(time.Second * time.Duration(agent.ReportInterval))
+		pollTicker := time.NewTicker(time.Second * time.Duration(a.PoolInterval))
+		reportTicker := time.NewTicker(time.Second * time.Duration(a.ReportInterval))
 
 		defer pollTicker.Stop()
 		defer reportTicker.Stop()
@@ -54,14 +54,14 @@ func (agent *Agent) Run() <-chan struct{} {
 			Counters: make(map[string]int),
 		}
 
-		client := resty.New().SetBaseURL(agent.Server)
+		client := resty.New().SetBaseURL(a.Server)
 
 		for {
 			select {
 			case <-pollTicker.C:
 				report.UpdateReport()
 			case <-reportTicker.C:
-				sendMetrics(report, client)
+				a.SendMetrics(report, client)
 			}
 		}
 	}()

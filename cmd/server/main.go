@@ -13,7 +13,8 @@ func main() {
 	config := serverconfig.Parse()
 	var store storage.MemoryRepository = &storage.MemStorage{}
 
-	r := handlers.NewRouter(store)
+	h := handlers.NewHandlers(store)
+	r := h.NewRouter()
 
 	fmt.Println("Started on", config.Server)
 	err := http.ListenAndServe(string(config.Server), r)

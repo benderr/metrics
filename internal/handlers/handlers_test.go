@@ -63,8 +63,8 @@ func TestUpdateMetricHandler(t *testing.T) {
 		Gauges:   make(map[string]storage.MetricGaugeInfo),
 	}
 
-	r := NewRouter(&store)
-	server := httptest.NewServer(r)
+	h := NewHandlers(&store)
+	server := httptest.NewServer(h.NewRouter())
 
 	defer server.Close()
 
@@ -157,8 +157,8 @@ func TestGetMetric(t *testing.T) {
 		Gauges:   map[string]storage.MetricGaugeInfo{"test2": {Name: "test2", Value: 100.1200}},
 	}
 
-	r := NewRouter(&store)
-	server := httptest.NewServer(r)
+	h := NewHandlers(&store)
+	server := httptest.NewServer(h.NewRouter())
 
 	defer server.Close()
 
@@ -237,8 +237,8 @@ func TestGetMetricList(t *testing.T) {
 		Gauges:   map[string]storage.MetricGaugeInfo{"second metric": {Name: "second metric", Value: 100.1200}},
 	}
 
-	r := NewRouter(&store)
-	server := httptest.NewServer(r)
+	h := NewHandlers(&store)
+	server := httptest.NewServer(h.NewRouter())
 
 	defer server.Close()
 
