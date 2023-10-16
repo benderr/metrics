@@ -15,7 +15,7 @@ type MockMemoryStorage struct {
 	Gauges   map[string]storage.MetricGaugeInfo
 }
 
-func (m *MockMemoryStorage) UpdateCounter(counter storage.MetricCounterInfo) {
+func (m *MockMemoryStorage) UpdateCounter(counter storage.MetricCounterInfo) error {
 	if metric, ok := m.Counters[counter.Name]; ok {
 		m.Counters[counter.Name] = storage.MetricCounterInfo{
 			Value: metric.Value + counter.Value,
@@ -24,10 +24,12 @@ func (m *MockMemoryStorage) UpdateCounter(counter storage.MetricCounterInfo) {
 	} else {
 		m.Counters[counter.Name] = counter
 	}
+	return nil
 }
 
-func (m *MockMemoryStorage) UpdateGauge(gauge storage.MetricGaugeInfo) {
+func (m *MockMemoryStorage) UpdateGauge(gauge storage.MetricGaugeInfo) error {
 	m.Gauges[gauge.Name] = gauge
+	return nil
 }
 
 func (m *MockMemoryStorage) GetCounters() ([]storage.MetricCounterInfo, error) {
@@ -46,14 +48,18 @@ func (m *MockMemoryStorage) GetGauges() ([]storage.MetricGaugeInfo, error) {
 	return res, nil
 }
 
-func (m *MockMemoryStorage) GetCounter(name string) (*storage.MetricCounterInfo, bool) {
-	res, ok := m.Counters[name]
-	return &res, ok
+func (m *MockMemoryStorage) GetCounter(name string) (*storage.MetricCounterInfo, error) {
+	if res, ok := m.Counters[name]; ok {
+		return &res, nil
+	}
+	return nil, nil
 }
 
-func (m *MockMemoryStorage) GetGauge(name string) (*storage.MetricGaugeInfo, bool) {
-	res, ok := m.Gauges[name]
-	return &res, ok
+func (m *MockMemoryStorage) GetGauge(name string) (*storage.MetricGaugeInfo, error) {
+	if res, ok := m.Gauges[name]; ok {
+		return &res, nil
+	}
+	return nil, nil
 }
 
 func TestUpdateMetricHandler(t *testing.T) {

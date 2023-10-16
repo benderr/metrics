@@ -17,58 +17,59 @@ type MetricGaugeInfo struct {
 	Value float64
 }
 
-type MemStorage struct {
+type InMemoryMetricRepository struct {
 	Counters []MetricCounterInfo
 	Gauges   []MetricGaugeInfo
 }
 
-func (m *MemStorage) UpdateCounter(counter MetricCounterInfo) {
-	if metric, ok := m.GetCounter(counter.Name); ok {
+func (m *InMemoryMetricRepository) UpdateCounter(counter MetricCounterInfo) error {
+	metric, err := m.GetCounter(counter.Name)
+	if err != nil {
+		return err
+	}
+	if metric != nil {
 		metric.Value += counter.Value
 	} else {
 		m.Counters = append(m.Counters, counter)
 	}
+	return nil
 }
 
-func (m *MemStorage) UpdateGauge(gauge MetricGaugeInfo) {
-	if metric, ok := m.GetGauge(gauge.Name); ok {
+func (m *InMemoryMetricRepository) UpdateGauge(gauge MetricGaugeInfo) error {
+	metric, err := m.GetGauge(gauge.Name)
+	if err != nil {
+		return err
+	}
+	if metric != nil {
 		metric.Value = gauge.Value
 	} else {
 		m.Gauges = append(m.Gauges, gauge)
 	}
+	return nil
 }
 
-func (m *MemStorage) GetCounter(name string) (*MetricCounterInfo, bool) {
+func (m *InMemoryMetricRepository) GetCounter(name string) (*MetricCounterInfo, error) {
 	for i, metric := range m.Counters {
 		if metric.Name == name {
-			return &m.Counters[i], true
+			return &m.Counters[i], nil
 		}
 	}
-	return nil, false
+	return nil, nil
 }
 
-func (m *MemStorage) GetGauge(name string) (*MetricGaugeInfo, bool) {
+func (m *InMemoryMetricRepository) GetGauge(name string) (*MetricGaugeInfo, error) {
 	for i, metric := range m.Gauges {
 		if metric.Name == name {
-			return &m.Gauges[i], true
+			return &m.Gauges[i], nil
 		}
 	}
-	return nil, false
+	return nil, nil
 }
 
-func (m *MemStorage) GetCounters() ([]MetricCounterInfo, error) {
+func (m *InMemoryMetricRepository) GetCounters() ([]MetricCounterInfo, error) {
 	return m.Counters, nil
 }
 
-func (m *MemStorage) GetGauges() ([]MetricGaugeInfo, error) {
+func (m *InMemoryMetricRepository) GetGauges() ([]MetricGaugeInfo, error) {
 	return m.Gauges, nil
-}
-
-type MemoryRepository interface {
-	UpdateCounter(counter MetricCounterInfo)
-	UpdateGauge(gauge MetricGaugeInfo)
-	GetCounter(name string) (*MetricCounterInfo, bool)
-	GetGauge(name string) (*MetricGaugeInfo, bool)
-	GetCounters() ([]MetricCounterInfo, error)
-	GetGauges() ([]MetricGaugeInfo, error)
 }

@@ -11,13 +11,17 @@ import (
 
 func main() {
 	config := serverconfig.Parse()
-	var store storage.MemoryRepository = &storage.MemStorage{}
 
-	h := handlers.NewHandlers(store)
-	r := h.NewRouter()
+	var repo handlers.MetricRepository = &storage.InMemoryMetricRepository{
+		Counters: make([]storage.MetricCounterInfo, 0),
+		Gauges:   make([]storage.MetricGaugeInfo, 0),
+	}
+
+	h := handlers.NewHandlers(repo)
 
 	fmt.Println("Started on", config.Server)
-	err := http.ListenAndServe(string(config.Server), r)
+
+	err := http.ListenAndServe(string(config.Server), h.NewRouter())
 	if err != nil {
 		panic(err)
 	}
