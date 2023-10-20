@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/benderr/metrics/internal/storage"
+	"github.com/go-chi/chi"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 )
@@ -70,7 +71,9 @@ func TestUpdateMetricHandler(t *testing.T) {
 	}
 
 	h := NewHandlers(&store)
-	server := httptest.NewServer(h.NewRouter())
+	r := chi.NewRouter()
+	h.AddHandlers(r)
+	server := httptest.NewServer(r)
 
 	defer server.Close()
 
@@ -167,7 +170,9 @@ func TestGetMetric(t *testing.T) {
 	}
 
 	h := NewHandlers(&store)
-	server := httptest.NewServer(h.NewRouter())
+	r := chi.NewRouter()
+	h.AddHandlers(r)
+	server := httptest.NewServer(r)
 
 	defer server.Close()
 
@@ -256,7 +261,9 @@ func TestGetMetricList(t *testing.T) {
 	}
 
 	h := NewHandlers(&store)
-	server := httptest.NewServer(h.NewRouter())
+	r := chi.NewRouter()
+	h.AddHandlers(r)
+	server := httptest.NewServer(r)
 
 	defer server.Close()
 

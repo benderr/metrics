@@ -30,13 +30,10 @@ func NewHandlers(repo MetricRepository) AppHandlers {
 	}
 }
 
-func (a *AppHandlers) NewRouter() *chi.Mux {
-	r := chi.NewRouter()
-
+func (a *AppHandlers) AddHandlers(r *chi.Mux) {
 	r.Get("/", a.GetMetricListHandler)
 	r.Post("/update/{type}/{name}/{value}", a.UpdateMetricHandler)
 	r.Get("/value/{type}/{name}", a.GetMetricHandler)
-	return r
 }
 
 func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
