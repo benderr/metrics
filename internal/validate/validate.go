@@ -7,36 +7,38 @@ import (
 	"github.com/benderr/metrics/internal/storage"
 )
 
-func ParseCounter(memType, name, value string) (storage.MetricCounterInfo, error) {
-	var metricInfo = storage.MetricCounterInfo{}
+func ParseCounter(memType, name, value string) (*storage.Metrics, error) {
+	var metricInfo = storage.Metrics{}
 	if memType == string(storage.Counter) {
 
 		v, err := strconv.ParseInt(value, 10, 64)
 
 		if err != nil {
-			return metricInfo, errors.New("invalid value")
+			return &metricInfo, errors.New("invalid value")
 		}
 
-		metricInfo.Name = name
-		metricInfo.Value = v
-		return metricInfo, nil
+		metricInfo.ID = name
+		metricInfo.Delta = &v
+		metricInfo.MType = memType
+		return &metricInfo, nil
 	}
-	return metricInfo, errors.New("not counter")
+	return nil, errors.New("not counter")
 }
 
-func ParseGauge(memType, name, value string) (storage.MetricGaugeInfo, error) {
-	var metricInfo = storage.MetricGaugeInfo{}
+func ParseGauge(memType, name, value string) (*storage.Metrics, error) {
+	var metricInfo = storage.Metrics{}
 	if memType == string(storage.Gauge) {
 
 		v, err := strconv.ParseFloat(value, 64)
 
 		if err != nil {
-			return metricInfo, errors.New("invalid value")
+			return &metricInfo, errors.New("invalid value")
 		}
 
-		metricInfo.Name = name
-		metricInfo.Value = v
-		return metricInfo, nil
+		metricInfo.ID = name
+		metricInfo.Value = &v
+		metricInfo.MType = memType
+		return &metricInfo, nil
 	}
-	return metricInfo, errors.New("not gauge")
+	return nil, errors.New("not gauge")
 }

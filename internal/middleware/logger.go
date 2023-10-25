@@ -3,8 +3,6 @@ package middleware
 import (
 	"net/http"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 type (
@@ -30,7 +28,15 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode
 }
 
-func LoggingMiddleware(next http.Handler) http.Handler {
+type LoggingMiddleware struct {
+	logger Logger
+}
+
+type Logger interface {
+	Infoln(args ...interface{})
+}
+
+func (l *LoggingMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -47,7 +53,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		zap.L().Sugar().Infoln(
+		l.logger.Infoln(
 			"uri", r.RequestURI,
 			"method", r.Method,
 			"status", responseData.status,
@@ -55,4 +61,10 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			"size", responseData.size,
 		)
 	})
+}
+
+func NewLoggingMiddleware(logger Logger) *LoggingMiddleware {
+	return &LoggingMiddleware{
+		logger: logger,
+	}
 }

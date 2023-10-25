@@ -29,17 +29,12 @@ func main() {
 		"addr", config.Server,
 	)
 
-	zap.ReplaceGlobals(logger)
-
-	var repo handlers.MetricRepository = &storage.InMemoryMetricRepository{
-		Counters: make([]storage.MetricCounterInfo, 0),
-		Gauges:   make([]storage.MetricGaugeInfo, 0),
-	}
+	var repo handlers.MetricRepository = storage.New()
 
 	h := handlers.NewHandlers(repo)
-
+	l := middleware.NewLoggingMiddleware(&sugar)
 	chiRouter := chi.NewRouter()
-	chiRouter.Use(middleware.LoggingMiddleware)
+	chiRouter.Use(l.Middleware)
 	h.AddHandlers(chiRouter)
 
 	err := http.ListenAndServe(string(config.Server), chiRouter)
