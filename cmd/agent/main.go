@@ -18,7 +18,7 @@ func main() {
 
 	fmt.Printf("Started with params: \n -address %v\n -report interval %v \n -pool interval %v \n\n", config.Server, config.ReportInterval, config.PollInterval)
 
-	var sender agent.MetricSender = http.NewJsonHttp(string(config.Server))
+	var sender agent.MetricSender = http.NewJSONHTTP(string(config.Server))
 	a := agent.New(config.PollInterval, config.ReportInterval, sender)
 
 	<-a.Run()

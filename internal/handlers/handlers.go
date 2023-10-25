@@ -29,8 +29,8 @@ func NewHandlers(repo MetricRepository) AppHandlers {
 
 func (a *AppHandlers) AddHandlers(r *chi.Mux) {
 	r.Get("/", a.GetMetricListHandler)
-	r.Post("/update/{type}/{name}/{value}", a.UpdateMetricByUrlHandler)
-	r.Get("/value/{type}/{name}", a.GetMetricByUrlHandler)
+	r.Post("/update/{type}/{name}/{value}", a.UpdateMetricByURLHandler)
+	r.Get("/value/{type}/{name}", a.GetMetricByURLHandler)
 
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", a.UpdateMetricHandler)
@@ -44,7 +44,7 @@ func (a *AppHandlers) AddHandlers(r *chi.Mux) {
 	})
 }
 
-func (a *AppHandlers) UpdateMetricByUrlHandler(w http.ResponseWriter, r *http.Request) {
+func (a *AppHandlers) UpdateMetricByURLHandler(w http.ResponseWriter, r *http.Request) {
 	memType := chi.URLParam(r, "type")
 	name := chi.URLParam(r, "name")
 	value := chi.URLParam(r, "value")
@@ -64,7 +64,7 @@ func (a *AppHandlers) UpdateMetricByUrlHandler(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func (a *AppHandlers) GetMetricByUrlHandler(w http.ResponseWriter, r *http.Request) {
+func (a *AppHandlers) GetMetricByURLHandler(w http.ResponseWriter, r *http.Request) {
 	memType := chi.URLParam(r, "type")
 	name := chi.URLParam(r, "name")
 

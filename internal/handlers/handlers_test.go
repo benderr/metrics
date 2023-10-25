@@ -156,8 +156,8 @@ func TestUpdateMetricByUrlHandler(t *testing.T) {
 func TestGetMetricByUrlHandler(t *testing.T) {
 
 	var delta int64 = 1
-	var val1 float64 = 100.1200
-	var val2 float64 = 806132.0
+	val1 := 100.1200
+	val2 := 806132.0
 
 	var store = MockMemoryStorage{
 		Metrics: map[string]storage.Metrics{
@@ -254,7 +254,7 @@ func TestGetMetricByUrlHandler(t *testing.T) {
 func TestGetMetricList(t *testing.T) {
 
 	var delta int64 = 591
-	var val1 float64 = 100.1200
+	val1 := 100.1200
 
 	var store = MockMemoryStorage{
 		Metrics: map[string]storage.Metrics{
@@ -289,8 +289,8 @@ func TestGetMetricList(t *testing.T) {
 func TestGetMetricHandler(t *testing.T) {
 
 	var delta int64 = 1
-	var val1 float64 = 100.1200
-	var val2 float64 = 806132.0
+	val1 := 100.1200
+	val2 := 806132.0
 
 	var store = MockMemoryStorage{
 		Metrics: map[string]storage.Metrics{
@@ -364,8 +364,8 @@ func TestGetMetricHandler(t *testing.T) {
 
 func TestUpdateMetricHandler(t *testing.T) {
 	var delta int64 = 1
-	var val1 float64 = 100.1200
-	var val2 float64 = 806132.0
+	val1 := 100.1200
+	val2 := 806132.0
 
 	var store = MockMemoryStorage{
 		Metrics: map[string]storage.Metrics{
@@ -383,7 +383,7 @@ func TestUpdateMetricHandler(t *testing.T) {
 	defer server.Close()
 
 	var resDelta int64 = 2
-	var resValue float64 = 102.1200
+	resValue := 102.1200
 
 	type want struct {
 		code    int

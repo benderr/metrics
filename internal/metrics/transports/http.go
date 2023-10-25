@@ -9,17 +9,17 @@ import (
 )
 
 // Первая версия с передачей данных внутри url
-func NewSimpleHttp(server string) *HttpSimpleTransport {
-	return &HttpSimpleTransport{
+func NewSimpleHTTP(server string) *HTTPSimpleTransport {
+	return &HTTPSimpleTransport{
 		client: resty.New().SetBaseURL(server),
 	}
 }
 
-type HttpSimpleTransport struct {
+type HTTPSimpleTransport struct {
 	client *resty.Client
 }
 
-func (h *HttpSimpleTransport) Send(metric *report.MetricItem) error {
+func (h *HTTPSimpleTransport) Send(metric *report.MetricItem) error {
 	switch metric.MType {
 	case "counter":
 		url := fmt.Sprintf("/%v/%v/%v/%v", "update", "counter", metric.ID, *metric.Delta)
@@ -41,17 +41,17 @@ func (h *HttpSimpleTransport) Send(metric *report.MetricItem) error {
 }
 
 // Вторая версия, с передачей данных через json-body
-func NewJsonHttp(server string) *HttpJsonTransport {
-	return &HttpJsonTransport{
+func NewJSONHTTP(server string) *HTTPJSONTransport {
+	return &HTTPJSONTransport{
 		client: resty.New().SetBaseURL(server),
 	}
 }
 
-type HttpJsonTransport struct {
+type HTTPJSONTransport struct {
 	client *resty.Client
 }
 
-func (h *HttpJsonTransport) Send(metric *report.MetricItem) error {
+func (h *HTTPJSONTransport) Send(metric *report.MetricItem) error {
 	_, err := h.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(*metric).
