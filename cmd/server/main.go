@@ -5,9 +5,10 @@ import (
 
 	"github.com/benderr/metrics/cmd/config/serverconfig"
 	"github.com/benderr/metrics/internal/handlers"
-	"github.com/benderr/metrics/internal/middleware"
+	log "github.com/benderr/metrics/internal/middleware/logger"
 	"github.com/benderr/metrics/internal/storage"
 	"github.com/go-chi/chi"
+
 	"go.uber.org/zap"
 )
 
@@ -32,7 +33,7 @@ func main() {
 	var repo handlers.MetricRepository = storage.New()
 
 	h := handlers.NewHandlers(repo)
-	l := middleware.NewLoggingMiddleware(&sugar)
+	l := log.New(&sugar)
 	chiRouter := chi.NewRouter()
 	chiRouter.Use(l.Middleware)
 	h.AddHandlers(chiRouter)

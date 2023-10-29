@@ -1,4 +1,4 @@
-package middleware
+package logger
 
 import (
 	"net/http"
@@ -63,7 +63,7 @@ func (l *LoggingMiddleware) Middleware(next http.Handler) http.Handler {
 	})
 }
 
-func NewLoggingMiddleware(logger Logger) *LoggingMiddleware {
+func New(logger Logger) *LoggingMiddleware {
 	return &LoggingMiddleware{
 		logger: logger,
 	}
