@@ -3,8 +3,9 @@ package serverconfig
 import (
 	"errors"
 	"flag"
-	"os"
 	"regexp"
+
+	"github.com/caarlos0/env/v6"
 )
 
 type ServerAddress string
@@ -29,24 +30,30 @@ func (address *ServerAddress) Set(flagValue string) error {
 }
 
 type Config struct {
-	Server ServerAddress
+	Server          ServerAddress `env:"ADDRESS"`
+	StoreInterval   int           `env:"STORE_INTERVAL"`
+	FileStoragePath string        `env:"FILE_STORAGE_PATH"`
+	Restore         bool          `env:"RESTORE"`
 }
 
 var config = Config{
-	Server: ":8080",
+	Server:          ":8080",
+	StoreInterval:   300,
+	FileStoragePath: "/tmp/metrics-db.json",
+	Restore:         true,
 }
 
 func init() {
 	flag.Var(&config.Server, "a", "address and port to run server")
-
+	flag.IntVar(&config.StoreInterval, "i", 300, "report save interval (seconds)")
+	flag.StringVar(&config.FileStoragePath, "f", "/tmp/metrics-db.json", "report store file name")
+	flag.BoolVar(&config.Restore, "r", true, "restore report from file")
 }
 
-func Parse() *Config {
+func Parse() (*Config, error) {
 	flag.Parse()
 
-	if address, ok := os.LookupEnv("ADDRESS"); ok {
-		config.Server.Set(address)
-	}
+	err := env.Parse(&config)
 
-	return &config
+	return &config, err
 }

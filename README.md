@@ -102,3 +102,15 @@ SERVER_PORT=8080
             -binary-path=cmd/server/server \
             -server-port=$SERVER_PORT \
             -source-path=.
+
+### iter 9
+
+ SERVER_PORT=8080
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=./metrics.json
+          metricstest -test.v -test.run="^TestIteration9$" \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server \
+            -file-storage-path=$TEMP_FILE \
+            -server-port=$SERVER_PORT \
+            -source-path=.
