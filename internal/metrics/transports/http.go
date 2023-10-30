@@ -54,6 +54,7 @@ type HTTPJSONTransport struct {
 func (h *HTTPJSONTransport) Send(metric *report.MetricItem) error {
 	_, err := h.client.R().
 		SetHeader("Content-Type", "application/json").
+		SetHeader("Accept-Encoding", "gzip").
 		SetBody(*metric).
 		Post("/update")
 

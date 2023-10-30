@@ -38,7 +38,6 @@ func (a *AppHandlers) AddHandlers(r *chi.Mux) {
 	r.Route("/value", func(r chi.Router) {
 		r.Post("/", a.GetMetricHandler)
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Println("VAL NOT FOUND")
 			http.Error(w, "invalid route "+r.RequestURI, http.StatusBadRequest)
 		})
 	})

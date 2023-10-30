@@ -5,7 +5,8 @@ import (
 
 	"github.com/benderr/metrics/cmd/config/serverconfig"
 	"github.com/benderr/metrics/internal/handlers"
-	log "github.com/benderr/metrics/internal/middleware/logger"
+	"github.com/benderr/metrics/internal/middleware/gziper"
+	"github.com/benderr/metrics/internal/middleware/logger"
 	"github.com/benderr/metrics/internal/storage"
 	"github.com/go-chi/chi"
 
@@ -17,13 +18,13 @@ var sugar zap.SugaredLogger
 func main() {
 	config := serverconfig.Parse()
 
-	logger, logError := zap.NewDevelopment()
-	if logError != nil {
-		panic(logError)
+	l, lerr := zap.NewDevelopment()
+	if lerr != nil {
+		panic(lerr)
 	}
-	defer logger.Sync()
+	defer l.Sync()
 
-	sugar = *logger.Sugar()
+	sugar = *l.Sugar()
 
 	sugar.Infow(
 		"Starting server",
@@ -33,9 +34,13 @@ func main() {
 	var repo handlers.MetricRepository = storage.New()
 
 	h := handlers.NewHandlers(repo)
-	l := log.New(&sugar)
+	log := logger.New(&sugar)
+	gzip := gziper.New(1, "application/json", "text/html")
+
 	chiRouter := chi.NewRouter()
-	chiRouter.Use(l.Middleware)
+	chiRouter.Use(log.Middleware)
+	chiRouter.Use(gzip.TransformWriter)
+	chiRouter.Use(gzip.TransformReader)
 	h.AddHandlers(chiRouter)
 
 	err := http.ListenAndServe(string(config.Server), chiRouter)

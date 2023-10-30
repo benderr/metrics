@@ -1,14 +1,18 @@
 package handlers
 
 import (
+	"bytes"
+	"compress/gzip"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/benderr/metrics/internal/middleware/gziper"
 	"github.com/benderr/metrics/internal/storage"
 	"github.com/go-chi/chi"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type MockMemoryStorage struct {
@@ -440,4 +444,95 @@ func TestUpdateMetricHandler(t *testing.T) {
 			assert.Equal(t, test.want.code, resp.StatusCode())
 		})
 	}
+}
+
+func TestGetMetricAcceptGzipOutputHandler(t *testing.T) {
+
+	val1 := 100.1200
+
+	var store = MockMemoryStorage{
+		Metrics: map[string]storage.Metrics{
+			"test2": {ID: "test2", Value: &val1, MType: "gauge"},
+		},
+	}
+
+	h := NewHandlers(&store)
+	r := chi.NewRouter()
+	g := gziper.New(1, "application/json", "text/html")
+	r.Use(g.TransformWriter)
+	h.AddHandlers(r)
+
+	server := httptest.NewServer(r)
+
+	defer server.Close()
+
+	req := resty.
+		New().
+		SetBaseURL(server.URL).
+		R().
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Accept-Encoding", "gzip")
+
+	t.Run("Get gauge test2 with accept-encoding: gzip", func(t *testing.T) {
+		resp, err := req.
+			SetBody(&storage.Metrics{
+				ID:    "test2",
+				MType: "gauge",
+			}).
+			Post("/value/")
+
+		assert.NoError(t, err, "error making HTTP request")
+
+		assert.JSONEq(t, string(resp.Body()), `{"value":100.12, "id":"test2", "type":"gauge"}`)
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode())
+	})
+}
+
+func TestGetMetricAcceptGzipInputHandler(t *testing.T) {
+
+	val1 := 100.1200
+
+	var store = MockMemoryStorage{
+		Metrics: map[string]storage.Metrics{
+			"test2": {ID: "test2", Value: &val1, MType: "gauge"},
+		},
+	}
+
+	h := NewHandlers(&store)
+	r := chi.NewRouter()
+	g := gziper.New(1, "application/json", "text/html")
+	r.Use(g.TransformReader)
+	h.AddHandlers(r)
+
+	server := httptest.NewServer(r)
+
+	defer server.Close()
+
+	req := resty.
+		New().
+		SetBaseURL(server.URL).
+		R().
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Content-Encoding", "gzip")
+
+	t.Run("Get gauge test2 with gzipped request body", func(t *testing.T) {
+
+		buf := bytes.NewBuffer(nil)
+		zb := gzip.NewWriter(buf)
+
+		_, err := zb.Write([]byte(`{"value":100.12, "id":"test2", "type":"gauge"}`))
+
+		require.NoError(t, err)
+
+		zb.Close()
+
+		resp, err := req.
+			SetBody(buf.Bytes()).
+			Post("/value/")
+
+		assert.NoError(t, err, "error making HTTP request")
+		assert.JSONEq(t, string(resp.Body()), `{"value":100.12, "id":"test2", "type":"gauge"}`)
+		assert.Equal(t, http.StatusOK, resp.StatusCode())
+	})
 }
