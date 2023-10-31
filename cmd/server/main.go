@@ -47,10 +47,10 @@ func main() {
 	}
 
 	if config.StoreInterval == 0 {
-		//оборачиваем репозиторий чтобы ловить Update
+		//оборачиваем репозиторий чтобы ловить Update и делать синхронную запись в файл
 		repo = &metricDumpRepository{repo, *dumper}
 	} else {
-		dumper.SaveByTime(config.StoreInterval)
+		go dumper.SaveByTime(config.StoreInterval)
 	}
 
 	//configure api

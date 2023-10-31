@@ -47,17 +47,17 @@ func (m *Dumper) SaveByTime(storeIntervalSeconds int) {
 	}
 }
 
-func (m *Dumper) Save() {
+func (m *Dumper) Save() error {
 	w, err := m.writer()
 	if err != nil {
 		m.logger.Errorln("invalid writer", err)
-		return
+		return err
 	}
 
 	list, err := m.metricRepo.GetList()
 	if err != nil {
 		m.logger.Errorln("data error", err)
-		return
+		return err
 	}
 
 	defer w.Close()
@@ -66,6 +66,7 @@ func (m *Dumper) Save() {
 	for _, item := range list {
 		encoder.Encode(item)
 	}
+	return nil
 }
 
 func (m *Dumper) Restore() error {
