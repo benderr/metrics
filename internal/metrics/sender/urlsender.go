@@ -9,17 +9,17 @@ import (
 )
 
 // Первая версия с передачей данных внутри url
-func NewUrlSender(server string) *UrlSender {
-	return &UrlSender{
+func NewURLSender(server string) *URLSender {
+	return &URLSender{
 		client: resty.New().SetBaseURL(server),
 	}
 }
 
-type UrlSender struct {
+type URLSender struct {
 	client *resty.Client
 }
 
-func (h *UrlSender) Send(metric *report.MetricItem) error {
+func (h *URLSender) Send(metric *report.MetricItem) error {
 	switch metric.MType {
 	case "counter":
 		url := fmt.Sprintf("/%v/%v/%v/%v", "update", "counter", metric.ID, *metric.Delta)
