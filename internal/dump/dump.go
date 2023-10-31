@@ -31,7 +31,7 @@ func New(repo repository.MetricRepository, logger ErrorLogger, readWriteGetter R
 	}
 }
 
-func (m *Dumper) SaveByTime(storeIntervalSeconds int) {
+func (d *Dumper) SaveByTime(storeIntervalSeconds int) {
 	if storeIntervalSeconds == 0 {
 		return
 	}
@@ -41,20 +41,20 @@ func (m *Dumper) SaveByTime(storeIntervalSeconds int) {
 
 	for {
 		<-saveTicker.C
-		go m.Save()
+		go d.Save()
 	}
 }
 
-func (m *Dumper) Save() error {
-	w, err := m.rwg.Get()
+func (d *Dumper) Save() error {
+	w, err := d.rwg.Get()
 	if err != nil {
-		m.logger.Errorln("invalid writer", err)
+		d.logger.Errorln("invalid writer", err)
 		return err
 	}
 
-	list, err := m.metricRepo.GetList()
+	list, err := d.metricRepo.GetList()
 	if err != nil {
-		m.logger.Errorln("data error", err)
+		d.logger.Errorln("data error", err)
 		return err
 	}
 
@@ -67,10 +67,10 @@ func (m *Dumper) Save() error {
 	return nil
 }
 
-func (m *Dumper) Restore() error {
-	r, err := m.rwg.Get()
+func (d *Dumper) Restore() error {
+	r, err := d.rwg.Get()
 	if err != nil {
-		m.logger.Errorln("invalid reader", err)
+		d.logger.Errorln("invalid reader", err)
 		return err
 	}
 	defer r.Close()
@@ -86,7 +86,7 @@ func (m *Dumper) Restore() error {
 		if err != nil {
 			return err
 		}
-		m.metricRepo.Update(*metric)
+		d.metricRepo.Update(*metric)
 	}
 	return nil
 }
