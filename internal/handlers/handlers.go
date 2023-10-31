@@ -6,22 +6,16 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/benderr/metrics/internal/repository"
 	"github.com/benderr/metrics/internal/storage"
-	"github.com/benderr/metrics/internal/validate"
 	"github.com/go-chi/chi"
 )
 
 type AppHandlers struct {
-	metricRepo MetricRepository
+	metricRepo repository.MetricRepository
 }
 
-type MetricRepository interface {
-	Update(metric storage.Metrics) (*storage.Metrics, error)
-	Get(id string) (*storage.Metrics, error)
-	GetList() ([]storage.Metrics, error)
-}
-
-func NewHandlers(repo MetricRepository) AppHandlers {
+func NewHandlers(repo repository.MetricRepository) AppHandlers {
 	return AppHandlers{
 		metricRepo: repo,
 	}
@@ -48,13 +42,13 @@ func (a *AppHandlers) UpdateMetricByURLHandler(w http.ResponseWriter, r *http.Re
 	name := chi.URLParam(r, "name")
 	value := chi.URLParam(r, "value")
 
-	if metric, err := validate.ParseCounter(memType, name, value); err == nil {
+	if metric, err := ParseCounter(memType, name, value); err == nil {
 		a.metricRepo.Update(*metric)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	if metric, err := validate.ParseGauge(memType, name, value); err == nil {
+	if metric, err := ParseGauge(memType, name, value); err == nil {
 		a.metricRepo.Update(*metric)
 		w.WriteHeader(http.StatusOK)
 		return

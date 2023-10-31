@@ -29,10 +29,10 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 }
 
 type LoggingMiddleware struct {
-	logger Logger
+	logger InfoLogger
 }
 
-type Logger interface {
+type InfoLogger interface {
 	Infoln(args ...interface{})
 }
 
@@ -63,7 +63,7 @@ func (l *LoggingMiddleware) Middleware(next http.Handler) http.Handler {
 	})
 }
 
-func New(logger Logger) *LoggingMiddleware {
+func New(logger InfoLogger) *LoggingMiddleware {
 	return &LoggingMiddleware{
 		logger: logger,
 	}

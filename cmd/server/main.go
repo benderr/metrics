@@ -1,15 +1,15 @@
 package main
 
 import (
-	"io"
 	"net/http"
-	"os"
 
-	"github.com/benderr/metrics/cmd/config/serverconfig"
 	"github.com/benderr/metrics/internal/dump"
+	"github.com/benderr/metrics/internal/filedump"
 	"github.com/benderr/metrics/internal/handlers"
 	"github.com/benderr/metrics/internal/middleware/gziper"
 	"github.com/benderr/metrics/internal/middleware/logger"
+	"github.com/benderr/metrics/internal/repository"
+	"github.com/benderr/metrics/internal/serverconfig"
 	"github.com/benderr/metrics/internal/storage"
 	"github.com/go-chi/chi"
 
@@ -37,10 +37,11 @@ func main() {
 		"addr", config.Server,
 	)
 
-	var repo handlers.MetricRepository = storage.New()
+	var repo repository.MetricRepository = storage.New()
 
 	//configure dumper
-	dumper := dump.New(repo, &sugar, getWriterFunc(config.FileStoragePath), getReaderFunc(config.FileStoragePath))
+	f := filedump.New(config.FileStoragePath) //создаем ReadWriteCloser, тут в перспективе может быть не только файл
+	dumper := dump.New(repo, &sugar, f)
 
 	if config.Restore {
 		dumper.Restore()
@@ -48,7 +49,7 @@ func main() {
 
 	if config.StoreInterval == 0 {
 		//оборачиваем репозиторий чтобы ловить Update и делать синхронную запись в файл
-		repo = &metricDumpRepository{repo, *dumper}
+		repo = dumper.TrackRepository(repo)
 	} else {
 		go dumper.SaveByTime(config.StoreInterval)
 	}
@@ -68,38 +69,4 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func getReaderFunc(filePath string) func() (io.ReadCloser, error) {
-	return func() (io.ReadCloser, error) {
-		file, err := os.OpenFile(filePath, os.O_RDONLY|os.O_CREATE, 0666)
-		if err != nil {
-			return nil, err
-		}
-		return file, nil
-	}
-}
-
-func getWriterFunc(filePath string) func() (io.WriteCloser, error) {
-	return func() (io.WriteCloser, error) {
-		file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
-		if err != nil {
-			return nil, err
-		}
-		return file, nil
-	}
-}
-
-type metricDumpRepository struct {
-	handlers.MetricRepository
-	dumper dump.Dumper
-}
-
-func (m *metricDumpRepository) Update(metric storage.Metrics) (*storage.Metrics, error) {
-	res, err := m.MetricRepository.Update(metric)
-	if err == nil {
-		m.dumper.Save()
-	}
-
-	return res, err
 }

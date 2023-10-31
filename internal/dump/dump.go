@@ -5,31 +5,29 @@ import (
 	"io"
 	"time"
 
+	"github.com/benderr/metrics/internal/repository"
 	"github.com/benderr/metrics/internal/storage"
 )
 
-type MetricRepo interface {
-	GetList() ([]storage.Metrics, error)
-	Update(metric storage.Metrics) (*storage.Metrics, error)
-}
-
-type Logger interface {
+type ErrorLogger interface {
 	Errorln(args ...interface{})
 }
 
-type Dumper struct {
-	metricRepo MetricRepo
-	logger     Logger
-	writer     func() (io.WriteCloser, error)
-	reader     func() (io.ReadCloser, error)
+type ReadWriteGetter interface {
+	Get() (io.ReadWriteCloser, error)
 }
 
-func New(repo MetricRepo, logger Logger, writer func() (io.WriteCloser, error), reader func() (io.ReadCloser, error)) *Dumper {
+type Dumper struct {
+	metricRepo repository.MetricRepository
+	logger     ErrorLogger
+	rwg        ReadWriteGetter
+}
+
+func New(repo repository.MetricRepository, logger ErrorLogger, readWriteGetter ReadWriteGetter) *Dumper {
 	return &Dumper{
 		metricRepo: repo,
 		logger:     logger,
-		writer:     writer,
-		reader:     reader,
+		rwg:        readWriteGetter,
 	}
 }
 
@@ -48,7 +46,7 @@ func (m *Dumper) SaveByTime(storeIntervalSeconds int) {
 }
 
 func (m *Dumper) Save() error {
-	w, err := m.writer()
+	w, err := m.rwg.Get()
 	if err != nil {
 		m.logger.Errorln("invalid writer", err)
 		return err
@@ -70,7 +68,7 @@ func (m *Dumper) Save() error {
 }
 
 func (m *Dumper) Restore() error {
-	r, err := m.reader()
+	r, err := m.rwg.Get()
 	if err != nil {
 		m.logger.Errorln("invalid reader", err)
 		return err
@@ -91,4 +89,8 @@ func (m *Dumper) Restore() error {
 		m.metricRepo.Update(*metric)
 	}
 	return nil
+}
+
+func (d *Dumper) TrackRepository(repo repository.MetricRepository) repository.MetricRepository {
+	return &metricDumpRepository{repo, d}
 }
