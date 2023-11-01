@@ -1,5 +1,10 @@
 package storage
 
+import (
+	"fmt"
+	"strings"
+)
+
 type MemType string
 
 const (
@@ -7,69 +12,62 @@ const (
 	Counter MemType = "counter"
 )
 
-type MetricCounterInfo struct {
-	Name  string
-	Value int64
+type Metrics struct {
+	ID    string   `json:"id"`              // имя метрики
+	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-type MetricGaugeInfo struct {
-	Name  string
-	Value float64
+func (m *Metrics) GetStringValue() string {
+	switch m.MType {
+	case string(Gauge):
+		return strings.TrimRight(fmt.Sprintf("%.3f", *m.Value), "0")
+	case string(Counter):
+		return fmt.Sprintf("%v", *m.Delta)
+	}
+	return ""
+}
+
+func New() *InMemoryMetricRepository {
+	return &InMemoryMetricRepository{
+		Metrics: make([]Metrics, 0),
+	}
 }
 
 type InMemoryMetricRepository struct {
-	Counters []MetricCounterInfo
-	Gauges   []MetricGaugeInfo
+	Metrics []Metrics
 }
 
-func (m *InMemoryMetricRepository) UpdateCounter(counter MetricCounterInfo) error {
-	metric, err := m.GetCounter(counter.Name)
+func (m *InMemoryMetricRepository) Update(mtr Metrics) (*Metrics, error) {
+	metric, err := m.Get(mtr.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if metric != nil {
-		metric.Value += counter.Value
+		switch mtr.MType {
+		case "gauge":
+			metric.Value = mtr.Value
+		case "counter":
+			newVal := *metric.Delta + *mtr.Delta
+			metric.Delta = &newVal
+		}
+		return metric, nil
 	} else {
-		m.Counters = append(m.Counters, counter)
+		m.Metrics = append(m.Metrics, mtr)
+		return &mtr, nil
 	}
-	return nil
 }
 
-func (m *InMemoryMetricRepository) UpdateGauge(gauge MetricGaugeInfo) error {
-	metric, err := m.GetGauge(gauge.Name)
-	if err != nil {
-		return err
-	}
-	if metric != nil {
-		metric.Value = gauge.Value
-	} else {
-		m.Gauges = append(m.Gauges, gauge)
-	}
-	return nil
-}
-
-func (m *InMemoryMetricRepository) GetCounter(name string) (*MetricCounterInfo, error) {
-	for i, metric := range m.Counters {
-		if metric.Name == name {
-			return &m.Counters[i], nil
+func (m *InMemoryMetricRepository) Get(id string) (*Metrics, error) {
+	for i, metric := range m.Metrics {
+		if metric.ID == id {
+			return &m.Metrics[i], nil
 		}
 	}
 	return nil, nil
 }
 
-func (m *InMemoryMetricRepository) GetGauge(name string) (*MetricGaugeInfo, error) {
-	for i, metric := range m.Gauges {
-		if metric.Name == name {
-			return &m.Gauges[i], nil
-		}
-	}
-	return nil, nil
-}
-
-func (m *InMemoryMetricRepository) GetCounters() ([]MetricCounterInfo, error) {
-	return m.Counters, nil
-}
-
-func (m *InMemoryMetricRepository) GetGauges() ([]MetricGaugeInfo, error) {
-	return m.Gauges, nil
+func (m *InMemoryMetricRepository) GetList() ([]Metrics, error) {
+	return m.Metrics, nil
 }

@@ -2,56 +2,54 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
+	"github.com/benderr/metrics/internal/repository"
 	"github.com/benderr/metrics/internal/storage"
-	"github.com/benderr/metrics/internal/validate"
 	"github.com/go-chi/chi"
 )
 
 type AppHandlers struct {
-	metricRepo MetricRepository
+	metricRepo repository.MetricRepository
 }
 
-type MetricRepository interface {
-	UpdateCounter(counter storage.MetricCounterInfo) error
-	UpdateGauge(gauge storage.MetricGaugeInfo) error
-	GetCounter(name string) (*storage.MetricCounterInfo, error)
-	GetGauge(name string) (*storage.MetricGaugeInfo, error)
-	GetCounters() ([]storage.MetricCounterInfo, error)
-	GetGauges() ([]storage.MetricGaugeInfo, error)
-}
-
-func NewHandlers(repo MetricRepository) AppHandlers {
+func NewHandlers(repo repository.MetricRepository) AppHandlers {
 	return AppHandlers{
 		metricRepo: repo,
 	}
 }
 
-func (a *AppHandlers) NewRouter() *chi.Mux {
-	r := chi.NewRouter()
-
+func (a *AppHandlers) AddHandlers(r *chi.Mux) {
 	r.Get("/", a.GetMetricListHandler)
-	r.Post("/update/{type}/{name}/{value}", a.UpdateMetricHandler)
-	r.Get("/value/{type}/{name}", a.GetMetricHandler)
-	return r
+	r.Post("/update/{type}/{name}/{value}", a.UpdateMetricByURLHandler)
+	r.Get("/value/{type}/{name}", a.GetMetricByURLHandler)
+
+	r.Route("/update", func(r chi.Router) {
+		r.Post("/", a.UpdateMetricHandler)
+	})
+	r.Route("/value", func(r chi.Router) {
+		r.Post("/", a.GetMetricHandler)
+		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "invalid route "+r.RequestURI, http.StatusBadRequest)
+		})
+	})
 }
 
-func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
+func (a *AppHandlers) UpdateMetricByURLHandler(w http.ResponseWriter, r *http.Request) {
 	memType := chi.URLParam(r, "type")
 	name := chi.URLParam(r, "name")
 	value := chi.URLParam(r, "value")
 
-	if metric, err := validate.ParseCounter(memType, name, value); err == nil {
-		a.metricRepo.UpdateCounter(metric)
+	if metric, err := ParseCounter(memType, name, value); err == nil {
+		a.metricRepo.Update(*metric)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	if metric, err := validate.ParseGauge(memType, name, value); err == nil {
-		a.metricRepo.UpdateGauge(metric)
+	if metric, err := ParseGauge(memType, name, value); err == nil {
+		a.metricRepo.Update(*metric)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -59,27 +57,29 @@ func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
+func (a *AppHandlers) GetMetricByURLHandler(w http.ResponseWriter, r *http.Request) {
 	memType := chi.URLParam(r, "type")
 	name := chi.URLParam(r, "name")
 
-	switch memType {
-	case string(storage.Counter):
-		if metric, _ := a.metricRepo.GetCounter(name); metric != nil {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(fmt.Sprintf("%v", metric.Value)))
-			return
-		}
+	metric, err := a.metricRepo.Get(name)
 
-	case string(storage.Gauge):
-		if metric, _ := a.metricRepo.GetGauge(name); metric != nil {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(formatGauge(metric.Value)))
-			return
-		}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	w.WriteHeader(http.StatusNotFound)
+	if metric == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	if metric.MType != memType {
+		http.Error(w, "invalid memType", http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(metric.GetStringValue()))
 }
 
 func (a *AppHandlers) GetMetricListHandler(w http.ResponseWriter, r *http.Request) {
@@ -87,20 +87,15 @@ func (a *AppHandlers) GetMetricListHandler(w http.ResponseWriter, r *http.Reques
 
 	output.WriteString("<table>")
 
-	counters, err := a.metricRepo.GetCounters()
-	gauges, err2 := a.metricRepo.GetGauges()
+	metrics, err := a.metricRepo.GetList()
 
-	if err != nil || err2 != nil {
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	for _, counter := range counters {
-		fmt.Fprintf(&output, "<tr><td>%v</td><td>%v</td></tr>", counter.Name, counter.Value)
-	}
-
-	for _, gauge := range gauges {
-		fmt.Fprintf(&output, "<tr><td>%v</td><td>%f</td></tr>", gauge.Name, gauge.Value)
+	for _, counter := range metrics {
+		fmt.Fprintf(&output, "<tr><td>%v</td><td>%v</td></tr>", counter.ID, counter.GetStringValue())
 	}
 
 	output.WriteString("<table>")
@@ -110,7 +105,74 @@ func (a *AppHandlers) GetMetricListHandler(w http.ResponseWriter, r *http.Reques
 	w.Write(output.Bytes())
 }
 
-func formatGauge(v float64) string {
-	//return strconv.FormatFloat(v, 'f', -1, 64)
-	return strings.TrimRight(fmt.Sprintf("%.3f", v), "0")
+func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
+	var buf bytes.Buffer
+	var metric storage.Metrics
+
+	_, err := buf.ReadFrom(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err = json.Unmarshal(buf.Bytes(), &metric); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	newMetric, err := a.metricRepo.Update(metric)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	res, err := json.Marshal(&newMetric)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(res)
+}
+
+func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
+	var buf bytes.Buffer
+	var metric storage.Metrics
+
+	_, err := buf.ReadFrom(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err = json.Unmarshal(buf.Bytes(), &metric); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	exist, err := a.metricRepo.Get(metric.ID)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if exist == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	res, err := json.Marshal(&exist)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(res)
 }

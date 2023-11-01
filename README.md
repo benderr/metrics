@@ -68,3 +68,49 @@ SERVER_PORT=8081
             -binary-path=cmd/server/server \
             -server-port=$SERVER_PORT \
             -source-path=.
+
+
+### iter 6
+
+SERVER_PORT=8081
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=./temp
+          metricstest -test.v -test.run="^TestIteration6$" \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server \
+            -server-port=$SERVER_PORT \
+            -source-path=.
+
+### iter 7
+
+SERVER_PORT=8081
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=./temp
+          metricstest -test.v -test.run="^TestIteration7$" \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server \
+            -server-port=$SERVER_PORT \
+            -source-path=.
+
+### iter 8
+
+SERVER_PORT=8080
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=./temp
+          metricstest -test.v -test.run="^TestIteration8$" \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server \
+            -server-port=$SERVER_PORT \
+            -source-path=.
+
+### iter 9
+
+ SERVER_PORT=8080
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=./metrics.json
+          metricstest -test.v -test.run="^TestIteration9$" \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server \
+            -file-storage-path=$TEMP_FILE \
+            -server-port=$SERVER_PORT \
+            -source-path=.

@@ -1,76 +1,77 @@
 package handlers
 
 import (
+	"bytes"
+	"compress/gzip"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/benderr/metrics/internal/middleware/gziper"
 	"github.com/benderr/metrics/internal/storage"
+	"github.com/go-chi/chi"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type MockMemoryStorage struct {
-	Counters map[string]storage.MetricCounterInfo
-	Gauges   map[string]storage.MetricGaugeInfo
+	Metrics map[string]storage.Metrics
 }
 
-func (m *MockMemoryStorage) UpdateCounter(counter storage.MetricCounterInfo) error {
-	if metric, ok := m.Counters[counter.Name]; ok {
-		m.Counters[counter.Name] = storage.MetricCounterInfo{
-			Value: metric.Value + counter.Value,
-			Name:  metric.Name,
+func (m *MockMemoryStorage) Update(mtr storage.Metrics) (*storage.Metrics, error) {
+	if metric, ok := m.Metrics[mtr.ID]; ok {
+		updatedMetric := storage.Metrics{
+			ID:    metric.ID,
+			MType: metric.MType,
 		}
+		switch metric.MType {
+		case "counter":
+			newVal := *metric.Delta + *mtr.Delta
+			updatedMetric.Delta = &newVal
+		case "gauge":
+			updatedMetric.Value = mtr.Value
+		}
+		m.Metrics[mtr.ID] = updatedMetric
+		return &updatedMetric, nil
 	} else {
-		m.Counters[counter.Name] = counter
+		m.Metrics[mtr.ID] = mtr
+		res := m.Metrics[mtr.ID]
+		return &res, nil
 	}
-	return nil
+
 }
 
-func (m *MockMemoryStorage) UpdateGauge(gauge storage.MetricGaugeInfo) error {
-	m.Gauges[gauge.Name] = gauge
-	return nil
-}
-
-func (m *MockMemoryStorage) GetCounters() ([]storage.MetricCounterInfo, error) {
-	res := []storage.MetricCounterInfo{}
-	for _, item := range m.Counters {
+func (m *MockMemoryStorage) GetList() ([]storage.Metrics, error) {
+	res := []storage.Metrics{}
+	for _, item := range m.Metrics {
 		res = append(res, item)
 	}
 	return res, nil
 }
 
-func (m *MockMemoryStorage) GetGauges() ([]storage.MetricGaugeInfo, error) {
-	res := []storage.MetricGaugeInfo{}
-	for _, item := range m.Gauges {
-		res = append(res, item)
-	}
-	return res, nil
-}
-
-func (m *MockMemoryStorage) GetCounter(name string) (*storage.MetricCounterInfo, error) {
-	if res, ok := m.Counters[name]; ok {
-		return &res, nil
+func (m *MockMemoryStorage) Get(name string) (*storage.Metrics, error) {
+	if res, ok := m.Metrics[name]; ok {
+		return &storage.Metrics{
+			ID:    res.ID,
+			Value: res.Value,
+			Delta: res.Delta,
+			MType: res.MType,
+		}, nil
 	}
 	return nil, nil
 }
 
-func (m *MockMemoryStorage) GetGauge(name string) (*storage.MetricGaugeInfo, error) {
-	if res, ok := m.Gauges[name]; ok {
-		return &res, nil
-	}
-	return nil, nil
-}
-
-func TestUpdateMetricHandler(t *testing.T) {
+func TestUpdateMetricByUrlHandler(t *testing.T) {
 
 	var store = MockMemoryStorage{
-		Counters: make(map[string]storage.MetricCounterInfo),
-		Gauges:   make(map[string]storage.MetricGaugeInfo),
+		Metrics: make(map[string]storage.Metrics),
 	}
 
 	h := NewHandlers(&store)
-	server := httptest.NewServer(h.NewRouter())
+	r := chi.NewRouter()
+	h.AddHandlers(r)
+	server := httptest.NewServer(r)
 
 	defer server.Close()
 
@@ -108,7 +109,7 @@ func TestUpdateMetricHandler(t *testing.T) {
 			},
 		},
 		{
-			url:    "/update/gauge/test/2.0",
+			url:    "/update/gauge/test3/2.0",
 			method: http.MethodPost,
 			name:   "Add new gauge metric",
 			want: want{
@@ -156,18 +157,24 @@ func TestUpdateMetricHandler(t *testing.T) {
 	}
 }
 
-func TestGetMetric(t *testing.T) {
+func TestGetMetricByUrlHandler(t *testing.T) {
+
+	var delta int64 = 1
+	val1 := 100.1200
+	val2 := 806132.0
 
 	var store = MockMemoryStorage{
-		Counters: map[string]storage.MetricCounterInfo{"test": {Name: "test", Value: 1}},
-		Gauges: map[string]storage.MetricGaugeInfo{
-			"test2":  {Name: "test2", Value: 100.1200},
-			"test22": {Name: "test22", Value: 806132.0},
+		Metrics: map[string]storage.Metrics{
+			"test":   {ID: "test", Delta: &delta, MType: "counter"},
+			"test2":  {ID: "test2", Value: &val1, MType: "gauge"},
+			"test22": {ID: "test22", Value: &val2, MType: "gauge"},
 		},
 	}
 
 	h := NewHandlers(&store)
-	server := httptest.NewServer(h.NewRouter())
+	r := chi.NewRouter()
+	h.AddHandlers(r)
+	server := httptest.NewServer(r)
 
 	defer server.Close()
 
@@ -250,13 +257,20 @@ func TestGetMetric(t *testing.T) {
 
 func TestGetMetricList(t *testing.T) {
 
+	var delta int64 = 591
+	val1 := 100.1200
+
 	var store = MockMemoryStorage{
-		Counters: map[string]storage.MetricCounterInfo{"first metric": {Name: "first metric", Value: 591}},
-		Gauges:   map[string]storage.MetricGaugeInfo{"second metric": {Name: "second metric", Value: 100.1200}},
+		Metrics: map[string]storage.Metrics{
+			"test":   {ID: "first metric", Delta: &delta, MType: "counter"},
+			"test22": {ID: "second metric", Value: &val1, MType: "gauge"},
+		},
 	}
 
 	h := NewHandlers(&store)
-	server := httptest.NewServer(h.NewRouter())
+	r := chi.NewRouter()
+	h.AddHandlers(r)
+	server := httptest.NewServer(r)
 
 	defer server.Close()
 
@@ -272,6 +286,253 @@ func TestGetMetricList(t *testing.T) {
 		assert.Contains(t, string(resp.Body()), "first metric")
 		assert.Contains(t, string(resp.Body()), "second metric")
 
+		assert.Equal(t, http.StatusOK, resp.StatusCode())
+	})
+}
+
+func TestGetMetricHandler(t *testing.T) {
+
+	var delta int64 = 1
+	val1 := 100.1200
+	val2 := 806132.0
+
+	var store = MockMemoryStorage{
+		Metrics: map[string]storage.Metrics{
+			"test":   {ID: "test", Delta: &delta, MType: "counter"},
+			"test2":  {ID: "test2", Value: &val1, MType: "gauge"},
+			"test22": {ID: "test22", Value: &val2, MType: "gauge"},
+		},
+	}
+
+	h := NewHandlers(&store)
+	r := chi.NewRouter()
+	h.AddHandlers(r)
+	server := httptest.NewServer(r)
+
+	defer server.Close()
+
+	type want struct {
+		code    int
+		content string
+	}
+	tests := []struct {
+		name string
+		body *storage.Metrics
+		url  string
+		want want
+	}{
+		{
+			url:  "/value/",
+			name: "Get counter test",
+			body: &storage.Metrics{
+				ID:    "test",
+				MType: "gauge",
+			},
+			want: want{
+				code:    http.StatusOK,
+				content: `{"delta":1, "id":"test", "type":"counter"}`,
+			},
+		},
+		{
+			url:  "/value/",
+			name: "Get gauge test2",
+			body: &storage.Metrics{
+				ID:    "test2",
+				MType: "gauge",
+			},
+			want: want{
+				code:    http.StatusOK,
+				content: `{"value":100.12, "id":"test2", "type":"gauge"}`,
+			},
+		},
+	}
+
+	req := resty.New().SetBaseURL(server.URL).R().SetHeader("Content-Type", "application/json")
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			resp, err := req.
+				SetBody(test.body).
+				Post(test.url)
+
+			assert.NoError(t, err, "error making HTTP request")
+
+			if len(test.want.content) > 0 {
+				assert.JSONEq(t, string(resp.Body()), test.want.content)
+			}
+
+			assert.Equal(t, test.want.code, resp.StatusCode())
+		})
+	}
+}
+
+func TestUpdateMetricHandler(t *testing.T) {
+	var delta int64 = 1
+	val1 := 100.1200
+	val2 := 806132.0
+
+	var store = MockMemoryStorage{
+		Metrics: map[string]storage.Metrics{
+			"test":   {ID: "test", Delta: &delta, MType: "counter"},
+			"test2":  {ID: "test2", Value: &val1, MType: "gauge"},
+			"test22": {ID: "test22", Value: &val2, MType: "gauge"},
+		},
+	}
+
+	h := NewHandlers(&store)
+	r := chi.NewRouter()
+	h.AddHandlers(r)
+	server := httptest.NewServer(r)
+
+	defer server.Close()
+
+	var resDelta int64 = 2
+	resValue := 102.1200
+
+	type want struct {
+		code    int
+		content string
+	}
+	tests := []struct {
+		name string
+		url  string
+		body *storage.Metrics
+		want want
+	}{
+		{
+			url: "/update",
+			body: &storage.Metrics{
+				ID:    "test",
+				MType: "counter",
+				Delta: &resDelta,
+			},
+			name: "Add new counter metric",
+			want: want{
+				code:    http.StatusOK,
+				content: `{"delta":3, "id":"test", "type":"counter"}`,
+			},
+		},
+		{
+			url: "/update",
+			body: &storage.Metrics{
+				ID:    "test2",
+				MType: "gauge",
+				Value: &resValue,
+			},
+			name: "Add new gauge metric",
+			want: want{
+				code:    http.StatusOK,
+				content: `{"value":102.12, "id":"test2", "type":"gauge"}`,
+			},
+		},
+	}
+
+	req := resty.New().SetBaseURL(server.URL).R().SetHeader("Content-Type", "application/json")
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			resp, err := req.
+				SetBody(test.body).
+				Post(test.url)
+
+			assert.NoError(t, err, "error making HTTP request")
+
+			if len(test.want.content) > 0 {
+				assert.JSONEq(t, string(resp.Body()), test.want.content)
+			}
+
+			assert.Equal(t, test.want.code, resp.StatusCode())
+		})
+	}
+}
+
+func TestGetMetricAcceptGzipOutputHandler(t *testing.T) {
+
+	val1 := 100.1200
+
+	var store = MockMemoryStorage{
+		Metrics: map[string]storage.Metrics{
+			"test2": {ID: "test2", Value: &val1, MType: "gauge"},
+		},
+	}
+
+	h := NewHandlers(&store)
+	r := chi.NewRouter()
+	g := gziper.New(1, "application/json", "text/html")
+	r.Use(g.TransformWriter)
+	h.AddHandlers(r)
+
+	server := httptest.NewServer(r)
+
+	defer server.Close()
+
+	req := resty.
+		New().
+		SetBaseURL(server.URL).
+		R().
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Accept-Encoding", "gzip")
+
+	t.Run("Get gauge test2 with accept-encoding: gzip", func(t *testing.T) {
+		resp, err := req.
+			SetBody(&storage.Metrics{
+				ID:    "test2",
+				MType: "gauge",
+			}).
+			Post("/value/")
+
+		assert.NoError(t, err, "error making HTTP request")
+
+		assert.JSONEq(t, string(resp.Body()), `{"value":100.12, "id":"test2", "type":"gauge"}`)
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode())
+	})
+}
+
+func TestGetMetricAcceptGzipInputHandler(t *testing.T) {
+
+	val1 := 100.1200
+
+	var store = MockMemoryStorage{
+		Metrics: map[string]storage.Metrics{
+			"test2": {ID: "test2", Value: &val1, MType: "gauge"},
+		},
+	}
+
+	h := NewHandlers(&store)
+	r := chi.NewRouter()
+	g := gziper.New(1, "application/json", "text/html")
+	r.Use(g.TransformReader)
+	h.AddHandlers(r)
+
+	server := httptest.NewServer(r)
+
+	defer server.Close()
+
+	req := resty.
+		New().
+		SetBaseURL(server.URL).
+		R().
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Content-Encoding", "gzip")
+
+	t.Run("Get gauge test2 with gzipped request body", func(t *testing.T) {
+
+		buf := bytes.NewBuffer(nil)
+		zb := gzip.NewWriter(buf)
+
+		_, err := zb.Write([]byte(`{"value":100.12, "id":"test2", "type":"gauge"}`))
+
+		require.NoError(t, err)
+
+		zb.Close()
+
+		resp, err := req.
+			SetBody(buf.Bytes()).
+			Post("/value/")
+
+		assert.NoError(t, err, "error making HTTP request")
+		assert.JSONEq(t, string(resp.Body()), `{"value":100.12, "id":"test2", "type":"gauge"}`)
 		assert.Equal(t, http.StatusOK, resp.StatusCode())
 	})
 }

@@ -1,16 +1,30 @@
-package metrics
+package report
 
 import (
 	"math/rand"
 	"runtime"
 )
 
-type Metrics struct {
-	Counters map[string]int
+type Report struct {
+	Counters map[string]int64
 	Gauges   map[string]float64
 }
 
-func (m *Metrics) InscrementCounter(name string, value int) {
+type MetricItem struct {
+	ID    string   `json:"id"`              // имя метрики
+	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+}
+
+func New() *Report {
+	return &Report{
+		Gauges:   make(map[string]float64),
+		Counters: make(map[string]int64),
+	}
+}
+
+func (m *Report) InscrementCounter(name string, value int64) {
 	if v, ok := m.Counters[name]; ok {
 		m.Counters[name] = v + value
 	} else {
@@ -18,11 +32,11 @@ func (m *Metrics) InscrementCounter(name string, value int) {
 	}
 }
 
-func (m *Metrics) UpdateGauge(name string, value float64) {
+func (m *Report) UpdateGauge(name string, value float64) {
 	m.Gauges[name] = value
 }
 
-func (m *Metrics) UpdateReport() {
+func (m *Report) UpdateReport() {
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
 

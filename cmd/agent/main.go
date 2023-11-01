@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/benderr/metrics/cmd/config/agentconfig"
-	"github.com/benderr/metrics/internal/metrics"
+	"github.com/benderr/metrics/internal/agentconfig"
+	"github.com/benderr/metrics/internal/metrics/agent"
+	sender "github.com/benderr/metrics/internal/metrics/sender"
 )
 
 func main() {
@@ -17,7 +18,8 @@ func main() {
 
 	fmt.Printf("Started with params: \n -address %v\n -report interval %v \n -pool interval %v \n\n", config.Server, config.ReportInterval, config.PollInterval)
 
-	agent := metrics.NewAgent(config.PollInterval, config.ReportInterval, string(config.Server))
+	var sender agent.MetricSender = sender.NewJSONSender(string(config.Server))
+	a := agent.New(config.PollInterval, config.ReportInterval, sender)
 
-	<-agent.Run()
+	<-a.Run()
 }
