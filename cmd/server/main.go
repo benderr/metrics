@@ -3,6 +3,8 @@ package main
 import (
 	"net/http"
 
+	"database/sql"
+
 	"github.com/benderr/metrics/internal/dump"
 	"github.com/benderr/metrics/internal/filedump"
 	"github.com/benderr/metrics/internal/handlers"
@@ -12,7 +14,7 @@ import (
 	"github.com/benderr/metrics/internal/serverconfig"
 	"github.com/benderr/metrics/internal/storage"
 	"github.com/go-chi/chi"
-
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 )
 
@@ -24,6 +26,7 @@ func main() {
 		panic(confError)
 	}
 
+	//configure logger
 	l, lerr := zap.NewDevelopment()
 	if lerr != nil {
 		panic(lerr)
@@ -36,6 +39,14 @@ func main() {
 		"Starting server",
 		"addr", config.Server,
 	)
+
+	//configure repo
+
+	db, dberr := sql.Open("pgx", config.DatabaseDsn)
+	if dberr != nil {
+		panic(dberr)
+	}
+	defer db.Close()
 
 	var repo repository.MetricRepository = storage.New()
 
@@ -55,7 +66,7 @@ func main() {
 	}
 
 	//configure api
-	h := handlers.NewHandlers(repo)
+	h := handlers.NewHandlersWithDb(repo, db)
 	log := logger.New(&sugar)
 	gzip := gziper.New(1, "application/json", "text/html")
 

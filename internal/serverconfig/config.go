@@ -34,6 +34,7 @@ type Config struct {
 	StoreInterval   int           `env:"STORE_INTERVAL"`
 	FileStoragePath string        `env:"FILE_STORAGE_PATH"`
 	Restore         bool          `env:"RESTORE"`
+	DatabaseDsn     string        `env:"DATABASE_DSN"`
 }
 
 var config = Config{
@@ -41,6 +42,7 @@ var config = Config{
 	StoreInterval:   300,
 	FileStoragePath: "/tmp/metrics-db.json",
 	Restore:         true,
+	DatabaseDsn:     "",
 }
 
 func init() {
@@ -48,6 +50,7 @@ func init() {
 	flag.IntVar(&config.StoreInterval, "i", 300, "report save interval (seconds)")
 	flag.StringVar(&config.FileStoragePath, "f", "/tmp/metrics-db.json", "report store file name")
 	flag.BoolVar(&config.Restore, "r", true, "restore report from file")
+	flag.StringVar(&config.DatabaseDsn, "d", "", "connection string for postgre")
 }
 
 func Parse() (*Config, error) {

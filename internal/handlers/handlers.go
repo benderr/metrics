@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,11 +14,20 @@ import (
 
 type AppHandlers struct {
 	metricRepo repository.MetricRepository
+	db         *sql.DB
 }
 
 func NewHandlers(repo repository.MetricRepository) AppHandlers {
 	return AppHandlers{
 		metricRepo: repo,
+		db:         nil,
+	}
+}
+
+func NewHandlersWithDb(repo repository.MetricRepository, db *sql.DB) AppHandlers {
+	return AppHandlers{
+		metricRepo: repo,
+		db:         db,
 	}
 }
 
@@ -25,6 +35,7 @@ func (a *AppHandlers) AddHandlers(r *chi.Mux) {
 	r.Get("/", a.GetMetricListHandler)
 	r.Post("/update/{type}/{name}/{value}", a.UpdateMetricByURLHandler)
 	r.Get("/value/{type}/{name}", a.GetMetricByURLHandler)
+	r.Get("/ping", a.PingDbHandler)
 
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", a.UpdateMetricHandler)
@@ -175,4 +186,19 @@ func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(res)
+}
+
+func (a *AppHandlers) PingDbHandler(w http.ResponseWriter, r *http.Request) {
+
+	if a.db == nil {
+		http.Error(w, "empty dsn", http.StatusInternalServerError)
+		return
+	}
+
+	if err := a.db.PingContext(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

@@ -91,6 +91,6 @@ func (d *Dumper) Restore() error {
 	return nil
 }
 
-func (d *Dumper) TrackRepository(repo repository.MetricRepository) repository.MetricRepository {
+func (d *Dumper) TrackRepository(repo repository.MetricRepository) *metricDumpRepository {
 	return &metricDumpRepository{repo, d}
 }
