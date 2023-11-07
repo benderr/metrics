@@ -2,32 +2,21 @@ package handlers
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/benderr/metrics/internal/repository"
-	"github.com/benderr/metrics/internal/storage"
 	"github.com/go-chi/chi"
 )
 
 type AppHandlers struct {
 	metricRepo repository.MetricRepository
-	db         *sql.DB
 }
 
 func NewHandlers(repo repository.MetricRepository) AppHandlers {
 	return AppHandlers{
 		metricRepo: repo,
-		db:         nil,
-	}
-}
-
-func NewHandlersWithDb(repo repository.MetricRepository, db *sql.DB) AppHandlers {
-	return AppHandlers{
-		metricRepo: repo,
-		db:         db,
 	}
 }
 
@@ -118,7 +107,7 @@ func (a *AppHandlers) GetMetricListHandler(w http.ResponseWriter, r *http.Reques
 
 func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
-	var metric storage.Metrics
+	var metric repository.Metrics
 
 	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
@@ -151,7 +140,7 @@ func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request
 
 func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
-	var metric storage.Metrics
+	var metric repository.Metrics
 
 	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
@@ -190,12 +179,7 @@ func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 
 func (a *AppHandlers) PingDbHandler(w http.ResponseWriter, r *http.Request) {
 
-	if a.db == nil {
-		http.Error(w, "empty dsn", http.StatusInternalServerError)
-		return
-	}
-
-	if err := a.db.PingContext(r.Context()); err != nil {
+	if err := a.metricRepo.PingContext(r.Context()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -3,12 +3,13 @@ package handlers
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/benderr/metrics/internal/middleware/gziper"
-	"github.com/benderr/metrics/internal/storage"
+	"github.com/benderr/metrics/internal/repository"
 	"github.com/go-chi/chi"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
@@ -16,12 +17,12 @@ import (
 )
 
 type MockMemoryStorage struct {
-	Metrics map[string]storage.Metrics
+	Metrics map[string]repository.Metrics
 }
 
-func (m *MockMemoryStorage) Update(mtr storage.Metrics) (*storage.Metrics, error) {
+func (m *MockMemoryStorage) Update(mtr repository.Metrics) (*repository.Metrics, error) {
 	if metric, ok := m.Metrics[mtr.ID]; ok {
-		updatedMetric := storage.Metrics{
+		updatedMetric := repository.Metrics{
 			ID:    metric.ID,
 			MType: metric.MType,
 		}
@@ -42,17 +43,17 @@ func (m *MockMemoryStorage) Update(mtr storage.Metrics) (*storage.Metrics, error
 
 }
 
-func (m *MockMemoryStorage) GetList() ([]storage.Metrics, error) {
-	res := []storage.Metrics{}
+func (m *MockMemoryStorage) GetList() ([]repository.Metrics, error) {
+	res := []repository.Metrics{}
 	for _, item := range m.Metrics {
 		res = append(res, item)
 	}
 	return res, nil
 }
 
-func (m *MockMemoryStorage) Get(name string) (*storage.Metrics, error) {
+func (m *MockMemoryStorage) Get(name string) (*repository.Metrics, error) {
 	if res, ok := m.Metrics[name]; ok {
-		return &storage.Metrics{
+		return &repository.Metrics{
 			ID:    res.ID,
 			Value: res.Value,
 			Delta: res.Delta,
@@ -62,10 +63,14 @@ func (m *MockMemoryStorage) Get(name string) (*storage.Metrics, error) {
 	return nil, nil
 }
 
+func (m *MockMemoryStorage) PingContext(ctx context.Context) error {
+	return nil
+}
+
 func TestUpdateMetricByUrlHandler(t *testing.T) {
 
 	var store = MockMemoryStorage{
-		Metrics: make(map[string]storage.Metrics),
+		Metrics: make(map[string]repository.Metrics),
 	}
 
 	h := NewHandlers(&store)
@@ -164,7 +169,7 @@ func TestGetMetricByUrlHandler(t *testing.T) {
 	val2 := 806132.0
 
 	var store = MockMemoryStorage{
-		Metrics: map[string]storage.Metrics{
+		Metrics: map[string]repository.Metrics{
 			"test":   {ID: "test", Delta: &delta, MType: "counter"},
 			"test2":  {ID: "test2", Value: &val1, MType: "gauge"},
 			"test22": {ID: "test22", Value: &val2, MType: "gauge"},
@@ -261,7 +266,7 @@ func TestGetMetricList(t *testing.T) {
 	val1 := 100.1200
 
 	var store = MockMemoryStorage{
-		Metrics: map[string]storage.Metrics{
+		Metrics: map[string]repository.Metrics{
 			"test":   {ID: "first metric", Delta: &delta, MType: "counter"},
 			"test22": {ID: "second metric", Value: &val1, MType: "gauge"},
 		},
@@ -297,7 +302,7 @@ func TestGetMetricHandler(t *testing.T) {
 	val2 := 806132.0
 
 	var store = MockMemoryStorage{
-		Metrics: map[string]storage.Metrics{
+		Metrics: map[string]repository.Metrics{
 			"test":   {ID: "test", Delta: &delta, MType: "counter"},
 			"test2":  {ID: "test2", Value: &val1, MType: "gauge"},
 			"test22": {ID: "test22", Value: &val2, MType: "gauge"},
@@ -317,14 +322,14 @@ func TestGetMetricHandler(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		body *storage.Metrics
+		body *repository.Metrics
 		url  string
 		want want
 	}{
 		{
 			url:  "/value/",
 			name: "Get counter test",
-			body: &storage.Metrics{
+			body: &repository.Metrics{
 				ID:    "test",
 				MType: "gauge",
 			},
@@ -336,7 +341,7 @@ func TestGetMetricHandler(t *testing.T) {
 		{
 			url:  "/value/",
 			name: "Get gauge test2",
-			body: &storage.Metrics{
+			body: &repository.Metrics{
 				ID:    "test2",
 				MType: "gauge",
 			},
@@ -372,7 +377,7 @@ func TestUpdateMetricHandler(t *testing.T) {
 	val2 := 806132.0
 
 	var store = MockMemoryStorage{
-		Metrics: map[string]storage.Metrics{
+		Metrics: map[string]repository.Metrics{
 			"test":   {ID: "test", Delta: &delta, MType: "counter"},
 			"test2":  {ID: "test2", Value: &val1, MType: "gauge"},
 			"test22": {ID: "test22", Value: &val2, MType: "gauge"},
@@ -396,12 +401,12 @@ func TestUpdateMetricHandler(t *testing.T) {
 	tests := []struct {
 		name string
 		url  string
-		body *storage.Metrics
+		body *repository.Metrics
 		want want
 	}{
 		{
 			url: "/update",
-			body: &storage.Metrics{
+			body: &repository.Metrics{
 				ID:    "test",
 				MType: "counter",
 				Delta: &resDelta,
@@ -414,7 +419,7 @@ func TestUpdateMetricHandler(t *testing.T) {
 		},
 		{
 			url: "/update",
-			body: &storage.Metrics{
+			body: &repository.Metrics{
 				ID:    "test2",
 				MType: "gauge",
 				Value: &resValue,
@@ -451,7 +456,7 @@ func TestGetMetricAcceptGzipOutputHandler(t *testing.T) {
 	val1 := 100.1200
 
 	var store = MockMemoryStorage{
-		Metrics: map[string]storage.Metrics{
+		Metrics: map[string]repository.Metrics{
 			"test2": {ID: "test2", Value: &val1, MType: "gauge"},
 		},
 	}
@@ -475,7 +480,7 @@ func TestGetMetricAcceptGzipOutputHandler(t *testing.T) {
 
 	t.Run("Get gauge test2 with accept-encoding: gzip", func(t *testing.T) {
 		resp, err := req.
-			SetBody(&storage.Metrics{
+			SetBody(&repository.Metrics{
 				ID:    "test2",
 				MType: "gauge",
 			}).
@@ -494,7 +499,7 @@ func TestGetMetricAcceptGzipInputHandler(t *testing.T) {
 	val1 := 100.1200
 
 	var store = MockMemoryStorage{
-		Metrics: map[string]storage.Metrics{
+		Metrics: map[string]repository.Metrics{
 			"test2": {ID: "test2", Value: &val1, MType: "gauge"},
 		},
 	}

@@ -11,8 +11,10 @@ import (
 	"github.com/benderr/metrics/internal/middleware/gziper"
 	"github.com/benderr/metrics/internal/middleware/logger"
 	"github.com/benderr/metrics/internal/repository"
+	"github.com/benderr/metrics/internal/repository/dbstorage"
+	"github.com/benderr/metrics/internal/repository/filestorage"
+	"github.com/benderr/metrics/internal/repository/inmemory"
 	"github.com/benderr/metrics/internal/serverconfig"
-	"github.com/benderr/metrics/internal/storage"
 	"github.com/go-chi/chi"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
@@ -41,32 +43,33 @@ func main() {
 	)
 
 	//configure repo
+	var repo repository.MetricRepository
 
-	db, dberr := sql.Open("pgx", config.DatabaseDsn)
-	if dberr != nil {
-		panic(dberr)
-	}
-	defer db.Close()
+	switch {
+	case config.DatabaseDsn != "":
+		db, dberr := sql.Open("pgx", config.DatabaseDsn)
+		if dberr != nil {
+			panic(dberr)
+		}
+		defer db.Close()
+		repo = dbstorage.New(db)
 
-	var repo repository.MetricRepository = storage.New()
+	case config.FileStoragePath != "":
+		readWriter := filedump.New(config.FileStoragePath)
+		sync := config.StoreInterval == 0
+		fs := filestorage.New(readWriter, &sugar, sync, config.Restore)
+		dumper := dump.New(fs)
+		if !sync {
+			go dumper.Start(config.StoreInterval)
+		}
+		repo = fs
 
-	//configure dumper
-	f := filedump.New(config.FileStoragePath) //создаем ReadWriteCloser, тут в перспективе может быть не только файл
-	dumper := dump.New(repo, &sugar, f)
-
-	if config.Restore {
-		dumper.Restore()
-	}
-
-	if config.StoreInterval == 0 {
-		//оборачиваем репозиторий чтобы ловить Update и делать синхронную запись в файл
-		repo = dumper.TrackRepository(repo)
-	} else {
-		go dumper.SaveByTime(config.StoreInterval)
+	default:
+		repo = inmemory.New()
 	}
 
 	//configure api
-	h := handlers.NewHandlersWithDb(repo, db)
+	h := handlers.NewHandlers(repo)
 	log := logger.New(&sugar)
 	gzip := gziper.New(1, "application/json", "text/html")
 

@@ -4,12 +4,12 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/benderr/metrics/internal/storage"
+	"github.com/benderr/metrics/internal/repository"
 )
 
-func ParseCounter(memType, name, value string) (*storage.Metrics, error) {
-	var metricInfo = storage.Metrics{}
-	if memType == string(storage.Counter) {
+func ParseCounter(memType, name, value string) (*repository.Metrics, error) {
+	var metricInfo = repository.Metrics{}
+	if memType == "counter" {
 
 		v, err := strconv.ParseInt(value, 10, 64)
 
@@ -25,9 +25,9 @@ func ParseCounter(memType, name, value string) (*storage.Metrics, error) {
 	return nil, errors.New("not counter")
 }
 
-func ParseGauge(memType, name, value string) (*storage.Metrics, error) {
-	var metricInfo = storage.Metrics{}
-	if memType == string(storage.Gauge) {
+func ParseGauge(memType, name, value string) (*repository.Metrics, error) {
+	var metricInfo = repository.Metrics{}
+	if memType == "gauge" {
 
 		v, err := strconv.ParseFloat(value, 64)
 

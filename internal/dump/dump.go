@@ -1,37 +1,22 @@
 package dump
 
 import (
-	"encoding/json"
-	"io"
 	"time"
 
-	"github.com/benderr/metrics/internal/repository"
-	"github.com/benderr/metrics/internal/storage"
+	"github.com/benderr/metrics/internal/repository/filestorage"
 )
 
-type ErrorLogger interface {
-	Errorln(args ...interface{})
-}
-
-type ReadWriteGetter interface {
-	Get() (io.ReadWriteCloser, error)
-}
-
 type Dumper struct {
-	metricRepo repository.MetricRepository
-	logger     ErrorLogger
-	rwg        ReadWriteGetter
+	fileRepo *filestorage.FileMetricRepository
 }
 
-func New(repo repository.MetricRepository, logger ErrorLogger, readWriteGetter ReadWriteGetter) *Dumper {
+func New(fileRepo *filestorage.FileMetricRepository) *Dumper {
 	return &Dumper{
-		metricRepo: repo,
-		logger:     logger,
-		rwg:        readWriteGetter,
+		fileRepo: fileRepo,
 	}
 }
 
-func (d *Dumper) SaveByTime(storeIntervalSeconds int) {
+func (d *Dumper) Start(storeIntervalSeconds int) {
 	if storeIntervalSeconds == 0 {
 		return
 	}
@@ -41,56 +26,6 @@ func (d *Dumper) SaveByTime(storeIntervalSeconds int) {
 
 	for {
 		<-saveTicker.C
-		go d.Save()
+		go d.fileRepo.Sync()
 	}
-}
-
-func (d *Dumper) Save() error {
-	w, err := d.rwg.Get()
-	if err != nil {
-		d.logger.Errorln("invalid writer", err)
-		return err
-	}
-
-	list, err := d.metricRepo.GetList()
-	if err != nil {
-		d.logger.Errorln("data error", err)
-		return err
-	}
-
-	defer w.Close()
-
-	encoder := json.NewEncoder(w)
-	for _, item := range list {
-		encoder.Encode(item)
-	}
-	return nil
-}
-
-func (d *Dumper) Restore() error {
-	r, err := d.rwg.Get()
-	if err != nil {
-		d.logger.Errorln("invalid reader", err)
-		return err
-	}
-	defer r.Close()
-
-	decoder := json.NewDecoder(r)
-
-	for {
-		metric := &storage.Metrics{}
-		err := decoder.Decode(&metric)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
-		d.metricRepo.Update(*metric)
-	}
-	return nil
-}
-
-func (d *Dumper) TrackRepository(repo repository.MetricRepository) *metricDumpRepository {
-	return &metricDumpRepository{repo, d}
 }
