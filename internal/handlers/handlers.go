@@ -24,7 +24,7 @@ func (a *AppHandlers) AddHandlers(r *chi.Mux) {
 	r.Get("/", a.GetMetricListHandler)
 	r.Post("/update/{type}/{name}/{value}", a.UpdateMetricByURLHandler)
 	r.Get("/value/{type}/{name}", a.GetMetricByURLHandler)
-	r.Get("/ping", a.PingDbHandler)
+	r.Get("/ping", a.PingDBHandler)
 
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", a.UpdateMetricHandler)
@@ -177,7 +177,7 @@ func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-func (a *AppHandlers) PingDbHandler(w http.ResponseWriter, r *http.Request) {
+func (a *AppHandlers) PingDBHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := a.metricRepo.PingContext(r.Context()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
