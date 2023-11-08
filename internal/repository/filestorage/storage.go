@@ -1,6 +1,7 @@
 package filestorage
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 
@@ -23,42 +24,36 @@ type ReadWriteGetter interface {
 	Get() (io.ReadWriteCloser, error)
 }
 
-func New(rwg ReadWriteGetter, logger ErrorLogger, sync bool, restore bool) *FileMetricRepository {
+func New(rwg ReadWriteGetter, logger ErrorLogger, sync bool) *FileMetricRepository {
 	var repo repository.MetricRepository = inmemory.New()
 
-	newRepo := &FileMetricRepository{
+	return &FileMetricRepository{
 		sync:             sync,
 		MetricRepository: repo,
 		logger:           logger,
 		rwg:              rwg,
 	}
-
-	if restore {
-		newRepo.Restore()
-	}
-
-	return newRepo
 }
 
-func (m *FileMetricRepository) Update(metric repository.Metrics) (*repository.Metrics, error) {
-	res, err := m.MetricRepository.Update(metric)
-	if err == nil && m.sync {
-		m.Sync()
+func (f *FileMetricRepository) Update(ctx context.Context, metric repository.Metrics) (*repository.Metrics, error) {
+	res, err := f.MetricRepository.Update(ctx, metric)
+	if err == nil && f.sync {
+		f.Sync(ctx)
 	}
 
 	return res, err
 }
 
-func (m *FileMetricRepository) Sync() error {
-	w, err := m.rwg.Get()
+func (f *FileMetricRepository) Sync(ctx context.Context) error {
+	w, err := f.rwg.Get()
 	if err != nil {
-		m.logger.Errorln("invalid writer", err)
+		f.logger.Errorln("invalid writer", err)
 		return err
 	}
 
-	list, err := m.GetList()
+	list, err := f.GetList(ctx)
 	if err != nil {
-		m.logger.Errorln("data error", err)
+		f.logger.Errorln("data error", err)
 		return err
 	}
 
@@ -71,10 +66,10 @@ func (m *FileMetricRepository) Sync() error {
 	return nil
 }
 
-func (m *FileMetricRepository) Restore() error {
-	r, err := m.rwg.Get()
+func (f *FileMetricRepository) Restore(ctx context.Context) error {
+	r, err := f.rwg.Get()
 	if err != nil {
-		m.logger.Errorln("invalid reader", err)
+		f.logger.Errorln("invalid reader", err)
 		return err
 	}
 	defer r.Close()
@@ -90,7 +85,7 @@ func (m *FileMetricRepository) Restore() error {
 		if err != nil {
 			return err
 		}
-		m.Update(*metric)
+		f.Update(ctx, *metric)
 	}
 	return nil
 }

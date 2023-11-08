@@ -1,6 +1,7 @@
 package dump
 
 import (
+	"context"
 	"time"
 
 	"github.com/benderr/metrics/internal/repository/filestorage"
@@ -16,7 +17,7 @@ func New(fileRepo *filestorage.FileMetricRepository) *Dumper {
 	}
 }
 
-func (d *Dumper) Start(storeIntervalSeconds int) {
+func (d *Dumper) Start(ctx context.Context, storeIntervalSeconds int) {
 	if storeIntervalSeconds == 0 {
 		return
 	}
@@ -26,6 +27,6 @@ func (d *Dumper) Start(storeIntervalSeconds int) {
 
 	for {
 		<-saveTicker.C
-		go d.fileRepo.Sync()
+		go d.fileRepo.Sync(ctx)
 	}
 }

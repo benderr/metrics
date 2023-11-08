@@ -20,7 +20,7 @@ type MockMemoryStorage struct {
 	Metrics map[string]repository.Metrics
 }
 
-func (m *MockMemoryStorage) Update(mtr repository.Metrics) (*repository.Metrics, error) {
+func (m *MockMemoryStorage) Update(ctx context.Context, mtr repository.Metrics) (*repository.Metrics, error) {
 	if metric, ok := m.Metrics[mtr.ID]; ok {
 		updatedMetric := repository.Metrics{
 			ID:    metric.ID,
@@ -43,7 +43,7 @@ func (m *MockMemoryStorage) Update(mtr repository.Metrics) (*repository.Metrics,
 
 }
 
-func (m *MockMemoryStorage) GetList() ([]repository.Metrics, error) {
+func (m *MockMemoryStorage) GetList(ctx context.Context) ([]repository.Metrics, error) {
 	res := []repository.Metrics{}
 	for _, item := range m.Metrics {
 		res = append(res, item)
@@ -51,7 +51,7 @@ func (m *MockMemoryStorage) GetList() ([]repository.Metrics, error) {
 	return res, nil
 }
 
-func (m *MockMemoryStorage) Get(name string) (*repository.Metrics, error) {
+func (m *MockMemoryStorage) Get(ctx context.Context, name string) (*repository.Metrics, error) {
 	if res, ok := m.Metrics[name]; ok {
 		return &repository.Metrics{
 			ID:    res.ID,

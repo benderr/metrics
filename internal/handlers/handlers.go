@@ -43,13 +43,13 @@ func (a *AppHandlers) UpdateMetricByURLHandler(w http.ResponseWriter, r *http.Re
 	value := chi.URLParam(r, "value")
 
 	if metric, err := ParseCounter(memType, name, value); err == nil {
-		a.metricRepo.Update(*metric)
+		a.metricRepo.Update(r.Context(), *metric)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
 	if metric, err := ParseGauge(memType, name, value); err == nil {
-		a.metricRepo.Update(*metric)
+		a.metricRepo.Update(r.Context(), *metric)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -61,7 +61,7 @@ func (a *AppHandlers) GetMetricByURLHandler(w http.ResponseWriter, r *http.Reque
 	memType := chi.URLParam(r, "type")
 	name := chi.URLParam(r, "name")
 
-	metric, err := a.metricRepo.Get(name)
+	metric, err := a.metricRepo.Get(r.Context(), name)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -87,7 +87,7 @@ func (a *AppHandlers) GetMetricListHandler(w http.ResponseWriter, r *http.Reques
 
 	output.WriteString("<table>")
 
-	metrics, err := a.metricRepo.GetList()
+	metrics, err := a.metricRepo.GetList(r.Context())
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -95,7 +95,7 @@ func (a *AppHandlers) GetMetricListHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	for _, counter := range metrics {
-		fmt.Fprintf(&output, "<tr><td>%v</td><td>%v</td></tr>", counter.ID, counter.GetStringValue())
+		fmt.Fprintf(&output, "<tr><td>%v</td><td>%s</td></tr>", counter.ID, counter.GetStringValue())
 	}
 
 	output.WriteString("<table>")
@@ -120,7 +120,7 @@ func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	newMetric, err := a.metricRepo.Update(metric)
+	newMetric, err := a.metricRepo.Update(r.Context(), metric)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -153,7 +153,7 @@ func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exist, err := a.metricRepo.Get(metric.ID)
+	exist, err := a.metricRepo.Get(r.Context(), metric.ID)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

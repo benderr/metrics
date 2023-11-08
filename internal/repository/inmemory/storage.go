@@ -16,8 +16,8 @@ type InMemoryMetricRepository struct {
 	Metrics []repository.Metrics
 }
 
-func (m *InMemoryMetricRepository) Update(mtr repository.Metrics) (*repository.Metrics, error) {
-	metric, err := m.Get(mtr.ID)
+func (m *InMemoryMetricRepository) Update(ctx context.Context, mtr repository.Metrics) (*repository.Metrics, error) {
+	metric, err := m.Get(ctx, mtr.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (m *InMemoryMetricRepository) Update(mtr repository.Metrics) (*repository.M
 	}
 }
 
-func (m *InMemoryMetricRepository) Get(id string) (*repository.Metrics, error) {
+func (m *InMemoryMetricRepository) Get(ctx context.Context, id string) (*repository.Metrics, error) {
 	for i, metric := range m.Metrics {
 		if metric.ID == id {
 			return &m.Metrics[i], nil
@@ -45,7 +45,7 @@ func (m *InMemoryMetricRepository) Get(id string) (*repository.Metrics, error) {
 	return nil, nil
 }
 
-func (m *InMemoryMetricRepository) GetList() ([]repository.Metrics, error) {
+func (m *InMemoryMetricRepository) GetList(ctx context.Context) ([]repository.Metrics, error) {
 	return m.Metrics, nil
 }
 

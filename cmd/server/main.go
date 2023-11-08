@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
 	"database/sql"
@@ -44,6 +45,7 @@ func main() {
 
 	//configure repo
 	var repo repository.MetricRepository
+	var ctx = context.Background()
 
 	switch {
 	case config.DatabaseDsn != "":
@@ -52,16 +54,24 @@ func main() {
 			panic(dberr)
 		}
 		defer db.Close()
-		repo = dbstorage.New(db)
+		dbRepo := dbstorage.New(db)
+		if err := dbRepo.Prepare(ctx); err != nil {
+			panic(err)
+		}
+		repo = dbRepo
 
 	case config.FileStoragePath != "":
 		readWriter := filedump.New(config.FileStoragePath)
 		sync := config.StoreInterval == 0
-		fs := filestorage.New(readWriter, &sugar, sync, config.Restore)
+		fs := filestorage.New(readWriter, &sugar, sync)
 		dumper := dump.New(fs)
 		if !sync {
-			go dumper.Start(config.StoreInterval)
+			go dumper.Start(ctx, config.StoreInterval)
 		}
+		if config.Restore {
+			fs.Restore(ctx)
+		}
+
 		repo = fs
 
 	default:

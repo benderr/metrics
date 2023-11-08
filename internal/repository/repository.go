@@ -16,16 +16,25 @@ type Metrics struct {
 func (m *Metrics) GetStringValue() string {
 	switch m.MType {
 	case "gauge":
-		return strings.TrimRight(fmt.Sprintf("%.3f", *m.Value), "0")
+		if m.Value != nil {
+			return strings.TrimRight(fmt.Sprintf("%.3f", *m.Value), "0")
+		} else {
+			return "<nil>"
+		}
+
 	case "counter":
-		return fmt.Sprintf("%v", *m.Delta)
+		if m.Delta != nil {
+			return fmt.Sprintf("%v", *m.Delta)
+		} else {
+			return "<nil>"
+		}
 	}
 	return ""
 }
 
 type MetricRepository interface {
-	Update(metric Metrics) (*Metrics, error)
-	Get(id string) (*Metrics, error)
-	GetList() ([]Metrics, error)
+	Update(ctx context.Context, metric Metrics) (*Metrics, error)
+	Get(ctx context.Context, id string) (*Metrics, error)
+	GetList(ctx context.Context) ([]Metrics, error)
 	PingContext(ctx context.Context) error
 }
