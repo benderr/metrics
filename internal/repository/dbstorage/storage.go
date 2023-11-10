@@ -34,7 +34,7 @@ func (m *MetricDBRepository) Update(ctx context.Context, mtr repository.Metrics)
 	VALUES($1, $2, $3, $4) 
 	ON CONFLICT (id) 
 	DO 
-	   UPDATE SET delta=$3, value=$4`, mtr.ID, mtr.MType, delta, value)
+	   UPDATE SET delta=metrics.delta + $3, value=$4`, mtr.ID, mtr.MType, delta, value)
 	if err != nil {
 		return nil, err
 	}
@@ -42,11 +42,63 @@ func (m *MetricDBRepository) Update(ctx context.Context, mtr repository.Metrics)
 	return m.Get(ctx, mtr.ID)
 }
 
+func (m *MetricDBRepository) BulkUpdate(ctx context.Context, metrics []repository.Metrics) error {
+
+	if len(metrics) == 0 {
+		return nil
+	}
+
+	tx, err := m.db.BeginTx(ctx, nil)
+
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.PrepareContext(ctx, `INSERT INTO metrics (id, type, delta, value)
+	VALUES($1, $2, $3, $4) 
+	ON CONFLICT (id) 
+	DO UPDATE SET delta=metrics.delta + $3, value=$4`)
+
+	if err != nil {
+		return err
+	}
+
+	for _, mtr := range metrics {
+		delta := sql.NullInt64{}
+		value := sql.NullFloat64{}
+		if mtr.Delta != nil {
+			delta = sql.NullInt64{Valid: true, Int64: *mtr.Delta}
+		}
+
+		if mtr.Value != nil {
+			value = sql.NullFloat64{Valid: true, Float64: *mtr.Value}
+		}
+		_, err := stmt.ExecContext(ctx, mtr.ID, mtr.MType, delta, value)
+
+		if err != nil {
+			stmt.Close()
+			return err
+		}
+	}
+
+	err = stmt.Close()
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
 func (m *MetricDBRepository) Get(ctx context.Context, id string) (*repository.Metrics, error) {
 	row := m.db.QueryRowContext(ctx, "SELECT id, type, delta, value from metrics WHERE id = $1", id)
 	var v repository.Metrics
 	err := row.Scan(&v.ID, &v.MType, &v.Delta, &v.Value)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 

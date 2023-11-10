@@ -59,6 +59,7 @@ func (g *GzipCompressor) TransformReader(next http.Handler) http.Handler {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+
 			r.Body = cr
 			defer cr.Close()
 		}

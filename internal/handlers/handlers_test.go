@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -18,6 +20,16 @@ import (
 
 type MockMemoryStorage struct {
 	Metrics map[string]repository.Metrics
+}
+
+type MockLogger struct{}
+
+func (m *MockLogger) Infoln(args ...interface{}) {
+	fmt.Println(args...)
+}
+
+func (m *MockLogger) Errorln(args ...interface{}) {
+	fmt.Println(args...)
 }
 
 func (m *MockMemoryStorage) Update(ctx context.Context, mtr repository.Metrics) (*repository.Metrics, error) {
@@ -40,7 +52,19 @@ func (m *MockMemoryStorage) Update(ctx context.Context, mtr repository.Metrics) 
 		res := m.Metrics[mtr.ID]
 		return &res, nil
 	}
+}
 
+func (m *MockMemoryStorage) BulkUpdate(ctx context.Context, metrics []repository.Metrics) error {
+
+	if len(metrics) == 0 {
+		return nil
+	}
+
+	for _, v := range metrics {
+		m.Update(ctx, v)
+	}
+
+	return nil
 }
 
 func (m *MockMemoryStorage) GetList(ctx context.Context) ([]repository.Metrics, error) {
@@ -73,7 +97,7 @@ func TestUpdateMetricByUrlHandler(t *testing.T) {
 		Metrics: make(map[string]repository.Metrics),
 	}
 
-	h := NewHandlers(&store)
+	h := NewHandlers(&store, &MockLogger{})
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -176,7 +200,7 @@ func TestGetMetricByUrlHandler(t *testing.T) {
 		},
 	}
 
-	h := NewHandlers(&store)
+	h := NewHandlers(&store, &MockLogger{})
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -272,7 +296,7 @@ func TestGetMetricList(t *testing.T) {
 		},
 	}
 
-	h := NewHandlers(&store)
+	h := NewHandlers(&store, &MockLogger{})
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -299,17 +323,15 @@ func TestGetMetricHandler(t *testing.T) {
 
 	var delta int64 = 1
 	val1 := 100.1200
-	val2 := 806132.0
 
 	var store = MockMemoryStorage{
 		Metrics: map[string]repository.Metrics{
-			"test":   {ID: "test", Delta: &delta, MType: "counter"},
-			"test2":  {ID: "test2", Value: &val1, MType: "gauge"},
-			"test22": {ID: "test22", Value: &val2, MType: "gauge"},
+			"test":  {ID: "test", Delta: &delta, MType: "counter"},
+			"test2": {ID: "test2", Value: &val1, MType: "gauge"},
 		},
 	}
 
-	h := NewHandlers(&store)
+	h := NewHandlers(&store, &MockLogger{})
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -350,6 +372,17 @@ func TestGetMetricHandler(t *testing.T) {
 				content: `{"value":100.12, "id":"test2", "type":"gauge"}`,
 			},
 		},
+		{
+			url:  "/value/",
+			name: "Get not exist metric",
+			body: &repository.Metrics{
+				ID:    "test3",
+				MType: "gauge",
+			},
+			want: want{
+				code: http.StatusNotFound,
+			},
+		},
 	}
 
 	req := resty.New().SetBaseURL(server.URL).R().SetHeader("Content-Type", "application/json")
@@ -384,7 +417,7 @@ func TestUpdateMetricHandler(t *testing.T) {
 		},
 	}
 
-	h := NewHandlers(&store)
+	h := NewHandlers(&store, &MockLogger{})
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -461,7 +494,7 @@ func TestGetMetricAcceptGzipOutputHandler(t *testing.T) {
 		},
 	}
 
-	h := NewHandlers(&store)
+	h := NewHandlers(&store, &MockLogger{})
 	r := chi.NewRouter()
 	g := gziper.New(1, "application/json", "text/html")
 	r.Use(g.TransformWriter)
@@ -504,10 +537,12 @@ func TestGetMetricAcceptGzipInputHandler(t *testing.T) {
 		},
 	}
 
-	h := NewHandlers(&store)
+	h := NewHandlers(&store, &MockLogger{})
 	r := chi.NewRouter()
 	g := gziper.New(1, "application/json", "text/html")
+	r.Use(g.TransformWriter)
 	r.Use(g.TransformReader)
+
 	h.AddHandlers(r)
 
 	server := httptest.NewServer(r)
@@ -523,21 +558,92 @@ func TestGetMetricAcceptGzipInputHandler(t *testing.T) {
 
 	t.Run("Get gauge test2 with gzipped request body", func(t *testing.T) {
 
-		buf := bytes.NewBuffer(nil)
-		zb := gzip.NewWriter(buf)
-
-		_, err := zb.Write([]byte(`{"value":100.12, "id":"test2", "type":"gauge"}`))
-
+		body, err := compress([]byte(`{"value":100.12, "id":"test2", "type":"gauge"}`))
 		require.NoError(t, err)
 
-		zb.Close()
-
 		resp, err := req.
-			SetBody(buf.Bytes()).
+			SetBody(body).
 			Post("/value/")
 
 		assert.NoError(t, err, "error making HTTP request")
 		assert.JSONEq(t, string(resp.Body()), `{"value":100.12, "id":"test2", "type":"gauge"}`)
 		assert.Equal(t, http.StatusOK, resp.StatusCode())
 	})
+}
+
+func TestBulkUpdateHandler(t *testing.T) {
+	var store = MockMemoryStorage{
+		Metrics: make(map[string]repository.Metrics),
+	}
+
+	h := NewHandlers(&store, &MockLogger{})
+	r := chi.NewRouter()
+	g := gziper.New(1, "application/json", "text/html")
+	r.Use(g.TransformWriter)
+	r.Use(g.TransformReader)
+	h.AddHandlers(r)
+
+	server := httptest.NewServer(r)
+
+	defer server.Close()
+
+	type want struct {
+		code int
+	}
+
+	var delta int64 = 1
+	value := 100.1200
+
+	tests := []struct {
+		name string
+		url  string
+		body []repository.Metrics
+		want want
+	}{
+		{
+			url: "/updates/",
+			body: []repository.Metrics{
+				{ID: "test", MType: "counter", Delta: &delta},
+				{ID: "test2", MType: "gauge", Value: &value},
+			},
+			name: "Add new metric list",
+			want: want{
+				code: http.StatusOK,
+			},
+		},
+	}
+
+	req := resty.New().SetBaseURL(server.URL).R().
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Content-Encoding", "gzip")
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			metrics, _ := json.Marshal(test.body)
+
+			body, err := compress(metrics)
+
+			require.NoError(t, err)
+
+			resp, err := req.
+				SetBody(body).
+				Post(test.url)
+
+			assert.NoError(t, err, "error making HTTP request")
+
+			assert.Equal(t, test.want.code, resp.StatusCode())
+		})
+	}
+}
+
+func compress(s []byte) ([]byte, error) {
+	buf := bytes.NewBuffer(nil)
+	zipped := gzip.NewWriter(buf)
+	_, err := zipped.Write(s)
+	if err != nil {
+		return nil, err
+	}
+	zipped.Close()
+	return buf.Bytes(), nil
 }

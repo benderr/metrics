@@ -4,19 +4,16 @@ import (
 	"time"
 
 	"github.com/benderr/metrics/internal/metrics/report"
+	"github.com/benderr/metrics/internal/metrics/sender"
 )
 
 type Agent struct {
 	PoolInterval   int
 	ReportInterval int
-	sender         MetricSender
+	sender         sender.MetricSender
 }
 
-type MetricSender interface {
-	Send(metric *report.MetricItem) error
-}
-
-func New(poolInterval int, reportInterval int, sender MetricSender) *Agent {
+func New(poolInterval int, reportInterval int, sender sender.MetricSender) *Agent {
 	return &Agent{
 		PoolInterval:   poolInterval,
 		ReportInterval: reportInterval,
@@ -24,18 +21,20 @@ func New(poolInterval int, reportInterval int, sender MetricSender) *Agent {
 	}
 }
 
-func (a *Agent) SendMetrics(r *report.Report) {
+func (a *Agent) SendMetrics(r *report.Report) error {
+	metrics := make([]report.MetricItem, 0)
+
 	for name, value := range r.Counters {
 		value := value
-		m := &report.MetricItem{ID: name, MType: "counter", Delta: &value}
-		go a.sender.Send(m)
+		metrics = append(metrics, report.MetricItem{ID: name, MType: "counter", Delta: &value})
 	}
 
 	for name, value := range r.Gauges {
 		value := value
-		m := &report.MetricItem{ID: name, MType: "gauge", Value: &value}
-		go a.sender.Send(m)
+		metrics = append(metrics, report.MetricItem{ID: name, MType: "gauge", Value: &value})
 	}
+
+	return a.sender.Send(metrics)
 }
 
 func (a *Agent) Run() <-chan struct{} {

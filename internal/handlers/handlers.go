@@ -12,11 +12,18 @@ import (
 
 type AppHandlers struct {
 	metricRepo repository.MetricRepository
+	logger     Logger
 }
 
-func NewHandlers(repo repository.MetricRepository) AppHandlers {
+type Logger interface {
+	Infoln(args ...interface{})
+	Errorln(args ...interface{})
+}
+
+func NewHandlers(repo repository.MetricRepository, logger Logger) AppHandlers {
 	return AppHandlers{
 		metricRepo: repo,
+		logger:     logger,
 	}
 }
 
@@ -25,6 +32,7 @@ func (a *AppHandlers) AddHandlers(r *chi.Mux) {
 	r.Post("/update/{type}/{name}/{value}", a.UpdateMetricByURLHandler)
 	r.Get("/value/{type}/{name}", a.GetMetricByURLHandler)
 	r.Get("/ping", a.PingDBHandler)
+	r.Post("/updates/", a.BulkUpdateHandler)
 
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", a.UpdateMetricHandler)
@@ -156,6 +164,7 @@ func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 	exist, err := a.metricRepo.Get(r.Context(), metric.ID)
 
 	if err != nil {
+		a.logger.Errorln("Internal error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -180,6 +189,34 @@ func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 func (a *AppHandlers) PingDBHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := a.metricRepo.PingContext(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (a *AppHandlers) BulkUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	var buf bytes.Buffer
+	metrics := make([]repository.Metrics, 0)
+
+	_, err := buf.ReadFrom(r.Body)
+	if err != nil {
+		a.logger.Infoln("Bad request", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err = json.Unmarshal(buf.Bytes(), &metrics); err != nil {
+		a.logger.Infoln("Bad request unmarshal", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = a.metricRepo.BulkUpdate(r.Context(), metrics)
+
+	if err != nil {
+		a.logger.Infoln("Internal error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

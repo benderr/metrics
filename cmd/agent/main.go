@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/benderr/metrics/internal/agentconfig"
 	"github.com/benderr/metrics/internal/metrics/agent"
-	sender "github.com/benderr/metrics/internal/metrics/sender"
+	"github.com/benderr/metrics/internal/metrics/sender/jsonsender"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -16,9 +16,24 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Started with params: \n -address %v\n -report interval %v \n -pool interval %v \n\n", config.Server, config.ReportInterval, config.PollInterval)
+	l, lerr := zap.NewDevelopment()
+	if lerr != nil {
+		panic(lerr)
+	}
+	defer l.Sync()
 
-	var sender agent.MetricSender = sender.NewJSONSender(string(config.Server))
+	sugar := *l.Sugar()
+
+	sugar.Infow(
+		"Started with params",
+		"-address", config.Server,
+		"-report interval", config.ReportInterval,
+		"-pool interval", config.PollInterval,
+	)
+
+	//sender := urlsender.New(string(config.Server))
+	sender := jsonsender.New(string(config.Server))
+	//sender := bulksender.New(string(config.Server), &sugar)
 	a := agent.New(config.PollInterval, config.ReportInterval, sender)
 
 	<-a.Run()

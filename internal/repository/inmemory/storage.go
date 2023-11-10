@@ -2,6 +2,7 @@ package inmemory
 
 import (
 	"context"
+	"sync"
 
 	"github.com/benderr/metrics/internal/repository"
 )
@@ -14,13 +15,18 @@ func New() *InMemoryMetricRepository {
 
 type InMemoryMetricRepository struct {
 	Metrics []repository.Metrics
+	mu      sync.Mutex
 }
 
 func (m *InMemoryMetricRepository) Update(ctx context.Context, mtr repository.Metrics) (*repository.Metrics, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	metric, err := m.Get(ctx, mtr.ID)
 	if err != nil {
 		return nil, err
 	}
+
 	if metric != nil {
 		switch mtr.MType {
 		case "gauge":
@@ -31,7 +37,9 @@ func (m *InMemoryMetricRepository) Update(ctx context.Context, mtr repository.Me
 		}
 		return metric, nil
 	} else {
+
 		m.Metrics = append(m.Metrics, mtr)
+
 		return &mtr, nil
 	}
 }
@@ -50,5 +58,18 @@ func (m *InMemoryMetricRepository) GetList(ctx context.Context) ([]repository.Me
 }
 
 func (m *InMemoryMetricRepository) PingContext(ctx context.Context) error {
+	return nil
+}
+
+func (m *InMemoryMetricRepository) BulkUpdate(ctx context.Context, metrics []repository.Metrics) error {
+
+	if len(metrics) == 0 {
+		return nil
+	}
+
+	for _, v := range metrics {
+		m.Update(ctx, v)
+	}
+
 	return nil
 }

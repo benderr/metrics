@@ -33,6 +33,7 @@ func (m *Metrics) GetStringValue() string {
 }
 
 type MetricRepository interface {
+	BulkUpdate(ctx context.Context, metrics []Metrics) error
 	Update(ctx context.Context, metric Metrics) (*Metrics, error)
 	Get(ctx context.Context, id string) (*Metrics, error)
 	GetList(ctx context.Context) ([]Metrics, error)

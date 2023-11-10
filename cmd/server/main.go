@@ -79,7 +79,7 @@ func main() {
 	}
 
 	//configure api
-	h := handlers.NewHandlers(repo)
+	h := handlers.NewHandlers(repo, &sugar)
 	log := logger.New(&sugar)
 	gzip := gziper.New(1, "application/json", "text/html")
 
