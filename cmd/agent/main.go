@@ -5,7 +5,7 @@ import (
 
 	"github.com/benderr/metrics/internal/agentconfig"
 	"github.com/benderr/metrics/internal/metrics/agent"
-	"github.com/benderr/metrics/internal/metrics/sender/jsonsender"
+	"github.com/benderr/metrics/internal/metrics/sender/bulksender"
 	"go.uber.org/zap"
 )
 
@@ -32,8 +32,8 @@ func main() {
 	)
 
 	//sender := urlsender.New(string(config.Server))
-	sender := jsonsender.New(string(config.Server))
-	//sender := bulksender.New(string(config.Server), &sugar)
+	//sender := jsonsender.New(string(config.Server))
+	sender := bulksender.New(string(config.Server), &sugar)
 	a := agent.New(config.PollInterval, config.ReportInterval, sender)
 
 	<-a.Run()
