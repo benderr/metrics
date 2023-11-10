@@ -44,14 +44,14 @@ func (f *FileMetricRepository) Update(ctx context.Context, metric repository.Met
 	return res, err
 }
 
-func (m *FileMetricRepository) BulkUpdate(ctx context.Context, metrics []repository.Metrics) error {
+func (f *FileMetricRepository) BulkUpdate(ctx context.Context, metrics []repository.Metrics) error {
 
 	if len(metrics) == 0 {
 		return nil
 	}
 
 	for _, v := range metrics {
-		m.Update(ctx, v)
+		f.Update(ctx, v)
 	}
 
 	return nil
