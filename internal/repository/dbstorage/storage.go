@@ -9,14 +9,20 @@ import (
 	"github.com/benderr/metrics/internal/repository"
 )
 
-func New(db *sql.DB) *MetricDBRepository {
+func New(db *sql.DB, log ErrorLogger) *MetricDBRepository {
 	return &MetricDBRepository{
-		db: db,
+		db:  db,
+		log: log,
 	}
 }
 
+type ErrorLogger interface {
+	Errorln(args ...interface{})
+}
+
 type MetricDBRepository struct {
-	db *sql.DB
+	db  *sql.DB
+	log ErrorLogger
 }
 
 func (m *MetricDBRepository) Update(ctx context.Context, mtr repository.Metrics) (*repository.Metrics, error) {
@@ -35,6 +41,7 @@ func (m *MetricDBRepository) Update(ctx context.Context, mtr repository.Metrics)
 	ON CONFLICT (id) 
 	DO 
 	   UPDATE SET delta=metrics.delta + $3, value=$4`, mtr.ID, mtr.MType, delta, value)
+
 	if err != nil {
 		return nil, err
 	}
@@ -48,13 +55,16 @@ func (m *MetricDBRepository) BulkUpdate(ctx context.Context, metrics []repositor
 		return nil
 	}
 
-	tx, err := m.db.BeginTx(ctx, nil)
+	newCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	tx, err := m.db.BeginTx(newCtx, nil)
 
 	if err != nil {
 		return err
 	}
 
-	stmt, err := tx.PrepareContext(ctx, `INSERT INTO metrics (id, type, delta, value)
+	stmt, err := tx.PrepareContext(newCtx, `INSERT INTO metrics (id, type, delta, value)
 	VALUES($1, $2, $3, $4) 
 	ON CONFLICT (id) 
 	DO UPDATE SET delta=metrics.delta + $3, value=$4`)
@@ -73,7 +83,7 @@ func (m *MetricDBRepository) BulkUpdate(ctx context.Context, metrics []repositor
 		if mtr.Value != nil {
 			value = sql.NullFloat64{Valid: true, Float64: *mtr.Value}
 		}
-		_, err := stmt.ExecContext(ctx, mtr.ID, mtr.MType, delta, value)
+		_, err := stmt.ExecContext(newCtx, mtr.ID, mtr.MType, delta, value)
 
 		if err != nil {
 			stmt.Close()
@@ -87,7 +97,12 @@ func (m *MetricDBRepository) BulkUpdate(ctx context.Context, metrics []repositor
 		return err
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+
+	if err != nil {
+		return err
+	}
+	return err
 }
 
 func (m *MetricDBRepository) Get(ctx context.Context, id string) (*repository.Metrics, error) {

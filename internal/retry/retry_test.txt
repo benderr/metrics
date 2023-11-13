@@ -1,0 +1,87 @@
+// package retry_test
+
+
+// func TestDo(t *testing.T) {
+
+// 	var delta int64 = 1
+// 	val1 := 100.1200
+
+// 	var store = MockMemoryStorage{
+// 		Metrics: map[string]repository.Metrics{
+// 			"test":  {ID: "test", Delta: &delta, MType: "counter"},
+// 			"test2": {ID: "test2", Value: &val1, MType: "gauge"},
+// 		},
+// 	}
+
+// 	h := NewHandlers(&store, &MockLogger{})
+// 	r := chi.NewRouter()
+// 	h.AddHandlers(r)
+// 	server := httptest.NewServer(r)
+
+// 	defer server.Close()
+
+// 	type want struct {
+// 		code    int
+// 		content string
+// 	}
+// 	tests := []struct {
+// 		name string
+// 		body *repository.Metrics
+// 		url  string
+// 		want want
+// 	}{
+// 		{
+// 			url:  "/value/",
+// 			name: "Get counter test",
+// 			body: &repository.Metrics{
+// 				ID:    "test",
+// 				MType: "gauge",
+// 			},
+// 			want: want{
+// 				code:    http.StatusOK,
+// 				content: `{"delta":1, "id":"test", "type":"counter"}`,
+// 			},
+// 		},
+// 		{
+// 			url:  "/value/",
+// 			name: "Get gauge test2",
+// 			body: &repository.Metrics{
+// 				ID:    "test2",
+// 				MType: "gauge",
+// 			},
+// 			want: want{
+// 				code:    http.StatusOK,
+// 				content: `{"value":100.12, "id":"test2", "type":"gauge"}`,
+// 			},
+// 		},
+// 		{
+// 			url:  "/value/",
+// 			name: "Get not exist metric",
+// 			body: &repository.Metrics{
+// 				ID:    "test3",
+// 				MType: "gauge",
+// 			},
+// 			want: want{
+// 				code: http.StatusNotFound,
+// 			},
+// 		},
+// 	}
+
+// 	req := resty.New().SetBaseURL(server.URL).R().SetHeader("Content-Type", "application/json")
+
+// 	for _, test := range tests {
+// 		t.Run(test.name, func(t *testing.T) {
+// 			resp, err := req.
+// 				SetBody(test.body).
+// 				Post(test.url)
+
+// 			assert.NoError(t, err, "error making HTTP request")
+
+// 			if len(test.want.content) > 0 {
+// 				assert.JSONEq(t, string(resp.Body()), test.want.content)
+// 			}
+
+// 			assert.Equal(t, test.want.code, resp.StatusCode())
+// 		})
+// 	}
+// }

@@ -54,7 +54,7 @@ func main() {
 			panic(dberr)
 		}
 		defer db.Close()
-		dbRepo := dbstorage.New(db)
+		dbRepo := dbstorage.New(db, &sugar)
 		if err := dbRepo.Prepare(ctx); err != nil {
 			panic(err)
 		}

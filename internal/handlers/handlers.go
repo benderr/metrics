@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/benderr/metrics/internal/repository"
+	"github.com/benderr/metrics/internal/retry"
 	"github.com/go-chi/chi"
 )
 
@@ -50,14 +52,17 @@ func (a *AppHandlers) UpdateMetricByURLHandler(w http.ResponseWriter, r *http.Re
 	name := chi.URLParam(r, "name")
 	value := chi.URLParam(r, "value")
 
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+
 	if metric, err := ParseCounter(memType, name, value); err == nil {
-		a.metricRepo.Update(r.Context(), *metric)
+		a.metricRepo.Update(ctx, *metric)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
 	if metric, err := ParseGauge(memType, name, value); err == nil {
-		a.metricRepo.Update(r.Context(), *metric)
+		a.metricRepo.Update(ctx, *metric)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -69,7 +74,9 @@ func (a *AppHandlers) GetMetricByURLHandler(w http.ResponseWriter, r *http.Reque
 	memType := chi.URLParam(r, "type")
 	name := chi.URLParam(r, "name")
 
-	metric, err := a.metricRepo.Get(r.Context(), name)
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+	metric, err := a.metricRepo.Get(ctx, name)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -95,7 +102,9 @@ func (a *AppHandlers) GetMetricListHandler(w http.ResponseWriter, r *http.Reques
 
 	output.WriteString("<table>")
 
-	metrics, err := a.metricRepo.GetList(r.Context())
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+	metrics, err := a.metricRepo.GetList(ctx)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -128,7 +137,12 @@ func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	newMetric, err := a.metricRepo.Update(r.Context(), metric)
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+
+	newMetric, err := retry.DoWithValue[*repository.Metrics](func() (*repository.Metrics, error) {
+		return a.metricRepo.Update(ctx, metric)
+	}, CanRetry)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -161,16 +175,21 @@ func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exist, err := a.metricRepo.Get(r.Context(), metric.ID)
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+
+	exist, err := retry.DoWithValue[*repository.Metrics](func() (*repository.Metrics, error) {
+		return a.metricRepo.Get(ctx, metric.ID)
+	}, CanRetry)
 
 	if err != nil {
-		a.logger.Errorln("Internal error", err)
+		a.logger.Errorln("internal error:", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if exist == nil {
-		http.Error(w, "not found", http.StatusNotFound)
+		http.Error(w, "not found:", http.StatusNotFound)
 		return
 	}
 
@@ -188,8 +207,11 @@ func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 
 func (a *AppHandlers) PingDBHandler(w http.ResponseWriter, r *http.Request) {
 
-	if err := a.metricRepo.PingContext(r.Context()); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+
+	if err := retry.Do(func() error { return a.metricRepo.PingContext(ctx) }, CanRetry); err != nil {
+		http.Error(w, "could't connect to database", http.StatusInternalServerError)
 		return
 	}
 
@@ -202,21 +224,24 @@ func (a *AppHandlers) BulkUpdateHandler(w http.ResponseWriter, r *http.Request) 
 
 	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
-		a.logger.Infoln("Bad request", err)
+		a.logger.Infoln("bad request:", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if err = json.Unmarshal(buf.Bytes(), &metrics); err != nil {
-		a.logger.Infoln("Bad request unmarshal", err)
+		a.logger.Infoln("bad request unmarshal:", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = a.metricRepo.BulkUpdate(r.Context(), metrics)
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+
+	err = retry.Do(func() error { return a.metricRepo.BulkUpdate(ctx, metrics) }, CanRetry)
 
 	if err != nil {
-		a.logger.Infoln("Internal error", err)
+		a.logger.Infoln("internal error:", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
