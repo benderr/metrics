@@ -2,7 +2,6 @@ package retry
 
 import (
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -18,8 +17,6 @@ func DoWithValue[T any](fn func() (T, error), canRetry func(attempt int, err err
 
 		allErrors = append(allErrors, err)
 		attempt++
-
-		fmt.Println("RETRY", attempt)
 
 		if !canRetry(attempt, err) {
 			var res T
