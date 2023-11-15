@@ -4,87 +4,44 @@ import (
 	"context"
 	"net/http"
 
-	"database/sql"
-
-	"github.com/benderr/metrics/internal/dump"
-	"github.com/benderr/metrics/internal/filedump"
-	"github.com/benderr/metrics/internal/handlers"
-	"github.com/benderr/metrics/internal/middleware/gziper"
-	"github.com/benderr/metrics/internal/middleware/logger"
-	"github.com/benderr/metrics/internal/repository"
-	"github.com/benderr/metrics/internal/repository/dbstorage"
-	"github.com/benderr/metrics/internal/repository/filestorage"
-	"github.com/benderr/metrics/internal/repository/inmemory"
-	"github.com/benderr/metrics/internal/serverconfig"
+	"github.com/benderr/metrics/internal/server/config"
+	"github.com/benderr/metrics/internal/server/handlers"
+	"github.com/benderr/metrics/internal/server/logger"
+	"github.com/benderr/metrics/internal/server/middleware/gziper"
+	"github.com/benderr/metrics/internal/server/middleware/mlogger"
+	"github.com/benderr/metrics/internal/server/repository/storage"
 	"github.com/go-chi/chi"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"go.uber.org/zap"
 )
 
-var sugar zap.SugaredLogger
-
 func main() {
-	config, confError := serverconfig.Parse()
+	config, confError := config.Parse()
 	if confError != nil {
 		panic(confError)
 	}
 
 	//configure logger
-	l, lerr := zap.NewDevelopment()
-	if lerr != nil {
-		panic(lerr)
-	}
-	defer l.Sync()
+	l, sync := logger.New()
 
-	sugar = *l.Sugar()
+	defer sync()
 
-	sugar.Infow(
-		"Starting server",
-		"addr", config.Server,
+	l.Infow(
+		"Starting server with",
+		"config", config,
 	)
 
 	//configure repo
-	var repo repository.MetricRepository
-	var ctx = context.Background()
-
-	switch {
-	case config.DatabaseDsn != "":
-		db, dberr := sql.Open("pgx", config.DatabaseDsn)
-		if dberr != nil {
-			panic(dberr)
-		}
-		defer db.Close()
-		dbRepo := dbstorage.New(db, &sugar)
-		if err := dbRepo.Prepare(ctx); err != nil {
-			panic(err)
-		}
-		repo = dbRepo
-
-	case config.FileStoragePath != "":
-		readWriter := filedump.New(config.FileStoragePath)
-		sync := config.StoreInterval == 0
-		fs := filestorage.New(readWriter, &sugar, sync)
-		dumper := dump.New(fs)
-		if !sync {
-			go dumper.Start(ctx, config.StoreInterval)
-		}
-		if config.Restore {
-			fs.Restore(ctx)
-		}
-
-		repo = fs
-
-	default:
-		repo = inmemory.New()
-	}
+	ctx := context.Background()
+	repo, close := storage.New(ctx, config, l)
+	defer close()
 
 	//configure api
-	h := handlers.NewHandlers(repo, &sugar)
-	log := logger.New(&sugar)
+	h := handlers.NewHandlers(repo, l)
+	mlog := mlogger.New(l)
 	gzip := gziper.New(1, "application/json", "text/html")
 
 	chiRouter := chi.NewRouter()
-	chiRouter.Use(log.Middleware)
+	chiRouter.Use(mlog.Middleware)
 	chiRouter.Use(gzip.TransformWriter)
 	chiRouter.Use(gzip.TransformReader)
 	h.AddHandlers(chiRouter)

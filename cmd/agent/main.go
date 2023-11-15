@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
-	"github.com/benderr/metrics/internal/agentconfig"
-	"github.com/benderr/metrics/internal/metrics/agent"
-	"github.com/benderr/metrics/internal/metrics/sender/bulksender"
+	"github.com/benderr/metrics/internal/agent/agent"
+	agentconfig "github.com/benderr/metrics/internal/agent/config"
+	"github.com/benderr/metrics/internal/agent/sender/bulksender"
 	"go.uber.org/zap"
 )
 
