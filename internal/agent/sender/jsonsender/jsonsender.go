@@ -3,7 +3,7 @@ package jsonsender
 import (
 	"errors"
 
-	"github.com/benderr/metrics/internal/metrics/report"
+	"github.com/benderr/metrics/internal/agent/report"
 	"github.com/go-resty/resty/v2"
 )
 
