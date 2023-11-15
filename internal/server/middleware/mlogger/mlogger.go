@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/benderr/metrics/internal/server/logger"
-	log "github.com/benderr/metrics/internal/server/logger"
 )
 
 type (
@@ -32,7 +31,7 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 }
 
 type LoggingMiddleware struct {
-	logger log.Logger
+	logger logger.Logger
 }
 
 func (l *LoggingMiddleware) Middleware(next http.Handler) http.Handler {
