@@ -35,6 +35,7 @@ type Config struct {
 	FileStoragePath string        `env:"FILE_STORAGE_PATH"`
 	Restore         bool          `env:"RESTORE"`
 	DatabaseDsn     string        `env:"DATABASE_DSN"`
+	SecretKey       string        `env:"KEY"`
 }
 
 var config = Config{
@@ -43,6 +44,7 @@ var config = Config{
 	FileStoragePath: "/tmp/metrics-db.json",
 	Restore:         true,
 	DatabaseDsn:     "",
+	SecretKey:       "",
 }
 
 func init() {
@@ -51,6 +53,7 @@ func init() {
 	flag.StringVar(&config.FileStoragePath, "f", "/tmp/metrics-db.json", "report store file name")
 	flag.BoolVar(&config.Restore, "r", true, "restore report from file")
 	flag.StringVar(&config.DatabaseDsn, "d", "", "connection string for postgre")
+	flag.StringVar(&config.SecretKey, "k", "", "sha256 based secret key")
 }
 
 func Parse() (*Config, error) {
