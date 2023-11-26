@@ -3,19 +3,19 @@ package jsonsender
 import (
 	"errors"
 
+	"github.com/benderr/metrics/internal/agent/apiclient"
 	"github.com/benderr/metrics/internal/agent/report"
-	"github.com/go-resty/resty/v2"
 )
 
 // Вторая версия, с передачей данных через json-body
-func New(server string) *JSONSender {
+func New(client *apiclient.Client) *JSONSender {
 	return &JSONSender{
-		client: resty.New().SetBaseURL(server),
+		client: client,
 	}
 }
 
 type JSONSender struct {
-	client *resty.Client
+	client *apiclient.Client
 }
 
 func (h *JSONSender) Send(metrics []report.MetricItem) error {

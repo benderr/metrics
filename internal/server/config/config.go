@@ -56,10 +56,14 @@ func init() {
 	flag.StringVar(&config.SecretKey, "k", "", "sha256 based secret key")
 }
 
-func Parse() (*Config, error) {
+func MustLoad() *Config {
 	flag.Parse()
 
 	err := env.Parse(&config)
 
-	return &config, err
+	if err != nil {
+		panic(err)
+	}
+
+	return &config
 }

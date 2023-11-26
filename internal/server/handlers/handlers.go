@@ -102,6 +102,7 @@ func (a *AppHandlers) GetMetricListHandler(w http.ResponseWriter, r *http.Reques
 	metrics, err := a.metricRepo.GetList(ctx)
 
 	if err != nil {
+		a.logger.Errorln(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -138,6 +139,7 @@ func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request
 	newMetric, err := a.metricRepo.Update(ctx, metric)
 
 	if err != nil {
+		a.logger.Errorln(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -145,6 +147,7 @@ func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request
 	res, err := json.Marshal(&newMetric)
 
 	if err != nil {
+		a.logger.Errorln(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -187,6 +190,7 @@ func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 	res, err := json.Marshal(&exist)
 
 	if err != nil {
+		a.logger.Errorln(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

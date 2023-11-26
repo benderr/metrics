@@ -4,25 +4,23 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"errors"
-	"time"
 
+	"github.com/benderr/metrics/internal/agent/apiclient"
+	"github.com/benderr/metrics/internal/agent/logger"
 	"github.com/benderr/metrics/internal/agent/report"
-	"github.com/benderr/metrics/internal/agent/sender"
-	"github.com/go-resty/resty/v2"
 )
 
 // Третья версия, с передачей массива данных
-func New(server string, log sender.Logger) *BulkSender {
+func New(client *apiclient.Client, log logger.Logger) *BulkSender {
 	return &BulkSender{
-		server: server,
+		client: client,
 		log:    log,
 	}
 }
 
 type BulkSender struct {
-	server string
-	log    sender.Logger
+	client *apiclient.Client
+	log    logger.Logger
 }
 
 func (b *BulkSender) Send(metrics []report.MetricItem) error {
@@ -43,41 +41,19 @@ func (b *BulkSender) Send(metrics []report.MetricItem) error {
 		return err
 	}
 
-	attempt := 0
-
-	client := resty.
-		New().
-		SetBaseURL(b.server).
-		SetRetryWaitTime(1 * time.Second).
-		SetRetryMaxWaitTime(5 * time.Second).
-		SetRetryCount(3).
-		SetRetryAfter(func(client *resty.Client, resp *resty.Response) (time.Duration, error) {
-			attempt += 1
-			wait := 0
-			switch attempt {
-			case 1:
-				wait = 1
-			case 2:
-				wait = 3
-			case 3:
-				wait = 5
-			}
-			if wait > 0 {
-				return time.Duration(wait) * time.Second, nil
-			} else {
-				return 0, errors.New("quota exceeded")
-			}
-		})
-
-	res, err := client.
+	req := b.client.
 		R().
 		SetHeader("Content-Type", "application/json; charset=utf-8").
 		SetHeader("Content-Encoding", "gzip").
-		SetBody(body).
+		SetBody(body)
+
+	_, err = req.
 		Post("/updates/")
 
 	if err != nil {
-		b.log.Errorln("bulk send error", err, string(res.Body()))
+		b.log.Errorln("bulk send error", err)
+	} else {
+		b.log.Infoln("sent", string(bufBytes))
 	}
 
 	return err
