@@ -4,19 +4,19 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/benderr/metrics/internal/agent/apiclient"
 	"github.com/benderr/metrics/internal/agent/report"
-	"github.com/go-resty/resty/v2"
 )
 
 // Первая версия с передачей данных внутри url
-func New(server string) *URLSender {
+func New(client *apiclient.Client) *URLSender {
 	return &URLSender{
-		client: resty.New().SetBaseURL(server),
+		client: client,
 	}
 }
 
 type URLSender struct {
-	client *resty.Client
+	client *apiclient.Client
 }
 
 func (h *URLSender) Send(metrics []report.MetricItem) error {
