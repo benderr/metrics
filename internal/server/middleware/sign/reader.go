@@ -9,7 +9,8 @@ import (
 	"net/http"
 )
 
-func (h *signValidator) TransformReader(next http.Handler) http.Handler {
+// Миддлвар для проверки подписи получаемого запроса
+func (h *signValidator) CheckSign(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if h.secret == "" {
 			next.ServeHTTP(w, r)

@@ -9,18 +9,21 @@ import (
 
 	"github.com/benderr/metrics/internal/server/logger"
 	"github.com/benderr/metrics/internal/server/repository"
+	"github.com/benderr/metrics/internal/sign"
 	"github.com/go-chi/chi"
 )
 
 type AppHandlers struct {
+	secret     string
 	metricRepo repository.MetricRepository
 	logger     logger.Logger
 }
 
-func NewHandlers(repo repository.MetricRepository, logger logger.Logger) AppHandlers {
+func New(repo repository.MetricRepository, logger logger.Logger, secret string) AppHandlers {
 	return AppHandlers{
 		metricRepo: repo,
 		logger:     logger,
+		secret:     secret,
 	}
 }
 
@@ -193,6 +196,12 @@ func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 		a.logger.Errorln(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if a.secret != "" {
+		signhex := sign.New(a.secret, res)
+		a.logger.Infoln("generated sign", signhex)
+		w.Header().Set("HashSHA256", signhex)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -33,13 +33,13 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 
-	h := handlers.NewHandlers(repo, a.log)
+	h := handlers.New(repo, a.log, a.config.SecretKey)
 	mwlog := mlogger.New(a.log)
 	mwgzip := gziper.New(1, "application/json", "text/html")
 	mwsign := sign.New(a.config.SecretKey, a.log)
 
 	chiRouter := chi.NewRouter()
-	chiRouter.Use(mwsign.TransformReader)
+	chiRouter.Use(mwsign.CheckSign)
 	chiRouter.Use(mwlog.Middleware)
 	chiRouter.Use(mwgzip.TransformWriter)
 	chiRouter.Use(mwgzip.TransformReader)

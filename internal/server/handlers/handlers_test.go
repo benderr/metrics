@@ -101,7 +101,7 @@ func TestUpdateMetricByUrlHandler(t *testing.T) {
 		Metrics: make(map[string]repository.Metrics),
 	}
 
-	h := NewHandlers(&store, &MockLogger{})
+	h := New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -204,7 +204,7 @@ func TestGetMetricByUrlHandler(t *testing.T) {
 		},
 	}
 
-	h := NewHandlers(&store, &MockLogger{})
+	h := New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -300,7 +300,7 @@ func TestGetMetricList(t *testing.T) {
 		},
 	}
 
-	h := NewHandlers(&store, &MockLogger{})
+	h := New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -335,7 +335,7 @@ func TestGetMetricHandler(t *testing.T) {
 		},
 	}
 
-	h := NewHandlers(&store, &MockLogger{})
+	h := New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -421,7 +421,7 @@ func TestUpdateMetricHandler(t *testing.T) {
 		},
 	}
 
-	h := NewHandlers(&store, &MockLogger{})
+	h := New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -498,7 +498,7 @@ func TestGetMetricAcceptGzipOutputHandler(t *testing.T) {
 		},
 	}
 
-	h := NewHandlers(&store, &MockLogger{})
+	h := New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	g := gziper.New(1, "application/json", "text/html")
 	r.Use(g.TransformWriter)
@@ -541,7 +541,7 @@ func TestGetMetricAcceptGzipInputHandler(t *testing.T) {
 		},
 	}
 
-	h := NewHandlers(&store, &MockLogger{})
+	h := New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	g := gziper.New(1, "application/json", "text/html")
 	r.Use(g.TransformWriter)
@@ -580,7 +580,7 @@ func TestBulkUpdateHandler(t *testing.T) {
 		Metrics: make(map[string]repository.Metrics),
 	}
 
-	h := NewHandlers(&store, &MockLogger{})
+	h := New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	g := gziper.New(1, "application/json", "text/html")
 	r.Use(g.TransformWriter)

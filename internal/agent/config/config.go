@@ -34,6 +34,7 @@ type EnvConfig struct {
 	ReportInterval int           `env:"REPORT_INTERVAL"`
 	PollInterval   int           `env:"POLL_INTERVAL"`
 	SecretKey      string        `env:"KEY"`
+	RateLimit      int           `env:"RATE_LIMIT"`
 }
 
 var config = EnvConfig{
@@ -41,6 +42,7 @@ var config = EnvConfig{
 	ReportInterval: 10,
 	PollInterval:   2,
 	SecretKey:      "",
+	RateLimit:      0,
 }
 
 func init() {
@@ -48,6 +50,7 @@ func init() {
 	flag.IntVar(&config.ReportInterval, "r", 10, "report send to server interval (seconds)")
 	flag.IntVar(&config.PollInterval, "p", 2, "create report interval (seconds)")
 	flag.StringVar(&config.SecretKey, "k", "", "sha256 based secret key")
+	flag.IntVar(&config.RateLimit, "l", 0, "rate limitter")
 }
 
 func Parse() (*EnvConfig, error) {
