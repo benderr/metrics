@@ -13,6 +13,7 @@ type Collector interface {
 func Join(ctx context.Context, collectors ...Collector) <-chan []stats.Item {
 	outCh := make(chan []stats.Item)
 	go func() {
+		defer close(outCh)
 		for _, c := range collectors {
 			inChan := c.Collect(ctx)
 			go func() {

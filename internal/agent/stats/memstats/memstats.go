@@ -23,7 +23,10 @@ func New(poolInterval int) *memStats {
 func (m *memStats) Collect(ctx context.Context) <-chan []stats.Item {
 	outCh := make(chan []stats.Item)
 	go func() {
+		defer close(outCh)
 		pollTicker := time.NewTicker(time.Second * time.Duration(m.PoolInterval))
+		defer pollTicker.Stop()
+
 		for {
 			select {
 			case <-ctx.Done():

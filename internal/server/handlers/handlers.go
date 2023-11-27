@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -50,17 +49,14 @@ func (a *AppHandlers) UpdateMetricByURLHandler(w http.ResponseWriter, r *http.Re
 	name := chi.URLParam(r, "name")
 	value := chi.URLParam(r, "value")
 
-	ctx, cancel := context.WithCancel(r.Context())
-	defer cancel()
-
 	if metric, err := ParseCounter(memType, name, value); err == nil {
-		a.metricRepo.Update(ctx, *metric)
+		a.metricRepo.Update(r.Context(), *metric)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
 	if metric, err := ParseGauge(memType, name, value); err == nil {
-		a.metricRepo.Update(ctx, *metric)
+		a.metricRepo.Update(r.Context(), *metric)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -72,9 +68,7 @@ func (a *AppHandlers) GetMetricByURLHandler(w http.ResponseWriter, r *http.Reque
 	memType := chi.URLParam(r, "type")
 	name := chi.URLParam(r, "name")
 
-	ctx, cancel := context.WithCancel(r.Context())
-	defer cancel()
-	metric, err := a.metricRepo.Get(ctx, name)
+	metric, err := a.metricRepo.Get(r.Context(), name)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -100,9 +94,7 @@ func (a *AppHandlers) GetMetricListHandler(w http.ResponseWriter, r *http.Reques
 
 	output.WriteString("<table>")
 
-	ctx, cancel := context.WithCancel(r.Context())
-	defer cancel()
-	metrics, err := a.metricRepo.GetList(ctx)
+	metrics, err := a.metricRepo.GetList(r.Context())
 
 	if err != nil {
 		a.logger.Errorln(err)
@@ -136,10 +128,7 @@ func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ctx, cancel := context.WithCancel(r.Context())
-	defer cancel()
-
-	newMetric, err := a.metricRepo.Update(ctx, metric)
+	newMetric, err := a.metricRepo.Update(r.Context(), metric)
 
 	if err != nil {
 		a.logger.Errorln(err)
@@ -174,10 +163,7 @@ func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithCancel(r.Context())
-	defer cancel()
-
-	exist, err := a.metricRepo.Get(ctx, metric.ID)
+	exist, err := a.metricRepo.Get(r.Context(), metric.ID)
 
 	if err != nil {
 		a.logger.Errorln("internal error:", err)
@@ -211,10 +197,7 @@ func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 
 func (a *AppHandlers) PingDBHandler(w http.ResponseWriter, r *http.Request) {
 
-	ctx, cancel := context.WithCancel(r.Context())
-	defer cancel()
-
-	if err := a.metricRepo.PingContext(ctx); err != nil {
+	if err := a.metricRepo.PingContext(r.Context()); err != nil {
 		http.Error(w, "could't connect to database", http.StatusInternalServerError)
 		return
 	}
@@ -239,10 +222,7 @@ func (a *AppHandlers) BulkUpdateHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	ctx, cancel := context.WithCancel(r.Context())
-	defer cancel()
-
-	err = a.metricRepo.BulkUpdate(ctx, metrics)
+	err = a.metricRepo.BulkUpdate(r.Context(), metrics)
 
 	if err != nil {
 		a.logger.Infoln("internal error:", err)
