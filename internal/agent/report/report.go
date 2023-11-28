@@ -1,7 +1,6 @@
 package report
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/benderr/metrics/internal/agent/stats"
@@ -66,6 +65,5 @@ func (r *Report) GetList() []MetricItem {
 	for _, value := range r.MetricItems {
 		metrics = append(metrics, value)
 	}
-	fmt.Println("GetList", metrics)
 	return metrics
 }

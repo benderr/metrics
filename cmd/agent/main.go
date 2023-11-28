@@ -32,7 +32,7 @@ func main() {
 		"-key ", config.SecretKey,
 	)
 
-	sender := metricsender.MustLoad(metricsender.BULK, config, l)
+	sender := metricsender.MustLoad(metricsender.JSON, config, l)
 
 	ctx := context.Background()
 

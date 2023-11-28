@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/benderr/metrics/internal/agent/report"
@@ -37,9 +36,7 @@ func (a *Agent) Run(ctx context.Context, in <-chan []stats.Item) {
 		case <-ctx.Done():
 			return
 		case v := <-in:
-			fmt.Println("before", v)
 			r.Update(v)
-			fmt.Println("after", v)
 		case <-reportTicker.C:
 			a.SendMetrics(r.GetList())
 		}
