@@ -28,9 +28,9 @@ func MustLoad(mode SenderMode, config *agentconfig.EnvConfig, logger logger.Logg
 
 	switch mode {
 	case URL:
-		newsender = urlsender.New(client)
+		newsender = urlsender.New(client, config.RateLimit)
 	case JSON:
-		newsender = jsonsender.New(client)
+		newsender = jsonsender.New(client, config.RateLimit)
 	case BULK:
 		newsender = bulksender.New(client, logger)
 	default:

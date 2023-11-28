@@ -11,6 +11,7 @@ import (
 )
 
 // Третья версия, с передачей массива данных
+// Здесь нет реализации Worker Pool так как уходит всего один запрос со всеми метриками
 func New(client *apiclient.Client, log logger.Logger) *BulkSender {
 	return &BulkSender{
 		client: client,
