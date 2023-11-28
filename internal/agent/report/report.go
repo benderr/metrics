@@ -26,7 +26,7 @@ func New() *Report {
 }
 
 func (r *Report) updateCounter(name string, value int64) {
-	var newVal int64 = value
+	newVal := value
 	if v, ok := r.MetricItems[name]; ok {
 		newVal = *v.Delta + value
 	}
