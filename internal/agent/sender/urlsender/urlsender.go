@@ -4,36 +4,38 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/benderr/metrics/internal/agent/apiclient"
 	"github.com/benderr/metrics/internal/agent/report"
-	"github.com/go-resty/resty/v2"
+	"github.com/benderr/metrics/internal/agent/sender/worker"
 )
 
 // Первая версия с передачей данных внутри url
-func New(server string) *URLSender {
+func New(client *apiclient.Client, rateLimit int) *URLSender {
 	return &URLSender{
-		client: resty.New().SetBaseURL(server),
+		client:    client,
+		rateLimit: rateLimit,
 	}
 }
 
 type URLSender struct {
-	client *resty.Client
+	client    *apiclient.Client
+	rateLimit int
 }
 
 func (h *URLSender) Send(metrics []report.MetricItem) error {
-	allErrors := make([]error, 0)
-	for _, metric := range metrics {
-		switch metric.MType {
+	allErrors := worker.Run(h.rateLimit, metrics, func(mi *report.MetricItem) error {
+		switch mi.MType {
 		case "counter":
-			url := fmt.Sprintf("/%v/%v/%v/%v", "update", "counter", metric.ID, *metric.Delta)
+			url := fmt.Sprintf("/%v/%v/%v/%v", "update", "counter", mi.ID, *mi.Delta)
 			_, err := h.client.R().Post(url)
-			allErrors = append(allErrors, err)
+			return err
 
 		case "gauge":
-			url := fmt.Sprintf("/%v/%v/%v/%v", "update", "gauge", metric.ID, *metric.Value)
+			url := fmt.Sprintf("/%v/%v/%v/%v", "update", "gauge", mi.ID, *mi.Value)
 			_, err := h.client.R().Post(url)
-			allErrors = append(allErrors, err)
+			return err
 		}
-	}
-
+		return nil
+	})
 	return errors.Join(allErrors...)
 }

@@ -12,24 +12,20 @@ import (
 	"github.com/benderr/metrics/internal/server/repository/inmemory"
 )
 
-func New(ctx context.Context, config *config.Config, logger repository.Logger) (repository.MetricRepository, func()) {
+func New(ctx context.Context, config *config.Config, logger repository.Logger) (repository.MetricRepository, error) {
 	var repo repository.MetricRepository
-	closer := func() {}
 	switch {
 	case config.DatabaseDsn != "":
 		db, dberr := sql.Open("pgx", config.DatabaseDsn)
 		if dberr != nil {
 			db.Close()
-			panic(dberr)
+			return nil, dberr
 		}
 
 		dbRepo := dbstorage.NewWithRetry(db, logger)
 		if err := dbRepo.Prepare(ctx); err != nil {
 			db.Close()
-			panic(err)
-		}
-		closer = func() {
-			db.Close()
+			return nil, err
 		}
 		repo = dbRepo
 
@@ -49,5 +45,5 @@ func New(ctx context.Context, config *config.Config, logger repository.Logger) (
 	default:
 		repo = inmemory.New()
 	}
-	return repo, closer
+	return repo, nil
 }

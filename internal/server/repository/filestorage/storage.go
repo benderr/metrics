@@ -38,16 +38,13 @@ func (f *FileMetricRepository) getFile() (io.ReadWriteCloser, error) {
 }
 
 func (f *FileMetricRepository) Update(ctx context.Context, metric repository.Metrics) (*repository.Metrics, error) {
-	nextCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	res, err := f.MetricRepository.Update(nextCtx, metric)
+	res, err := f.MetricRepository.Update(ctx, metric)
 	if err != nil {
 		return nil, err
 	}
 
 	if f.sync {
-		f.Sync(nextCtx)
+		f.Sync(ctx)
 	}
 
 	return res, err
@@ -59,17 +56,15 @@ func (f *FileMetricRepository) BulkUpdate(ctx context.Context, metrics []reposit
 		return nil
 	}
 
-	nextCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
 	for _, v := range metrics {
-		_, err := f.MetricRepository.Update(nextCtx, v)
+		_, err := f.MetricRepository.Update(ctx, v)
 		if err != nil {
 			return err
 		}
 	}
 
 	if f.sync {
-		f.Sync(nextCtx)
+		f.Sync(ctx)
 	}
 
 	return nil
@@ -85,10 +80,7 @@ func (f *FileMetricRepository) Sync(ctx context.Context) error {
 		}
 		defer w.Close()
 
-		nextCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		list, err := f.GetList(nextCtx)
+		list, err := f.GetList(ctx)
 		if err != nil {
 			f.logger.Errorln("data error", err)
 			return err
@@ -112,8 +104,7 @@ func (f *FileMetricRepository) Restore(ctx context.Context) error {
 		defer r.Close()
 
 		decoder := json.NewDecoder(r)
-		nextCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
+
 		for {
 			metric := &repository.Metrics{}
 			err := decoder.Decode(&metric)
@@ -123,7 +114,7 @@ func (f *FileMetricRepository) Restore(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			f.Update(nextCtx, *metric)
+			f.Update(ctx, *metric)
 		}
 		return nil
 	}, retry.DefaultRetryCondition)
