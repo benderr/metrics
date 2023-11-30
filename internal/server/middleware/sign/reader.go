@@ -17,7 +17,7 @@ func (h *signValidator) CheckSign(next http.Handler) http.Handler {
 			return
 		}
 		hash := r.Header.Get("HashSHA256")
-		if len(h.secret) > 0 && len(hash) > 0 {
+		if len(h.secret) > 0 {
 			sign, err := hex.DecodeString(hash)
 
 			if err != nil {
