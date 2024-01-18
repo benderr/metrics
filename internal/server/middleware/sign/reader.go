@@ -17,7 +17,7 @@ func (h *signValidator) CheckSign(next http.Handler) http.Handler {
 			return
 		}
 		hash := r.Header.Get("HashSHA256")
-		if len(h.secret) > 0 {
+		if len(h.secret) > 0 && len(hash) > 0 {
 			sign, err := hex.DecodeString(hash)
 
 			if err != nil {
@@ -43,7 +43,7 @@ func (h *signValidator) CheckSign(next http.Handler) http.Handler {
 			signFromBody := hinst.Sum(nil)
 
 			if !hmac.Equal(sign, signFromBody) {
-				h.logger.Infow("invalid sign")
+				h.logger.Infow("invalid sign", sign)
 				http.Error(w, "invalid sign", http.StatusBadRequest)
 				return
 			}
