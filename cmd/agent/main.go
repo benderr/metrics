@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/benderr/metrics/internal/agent/agent"
 	agentconfig "github.com/benderr/metrics/internal/agent/config"
-	"github.com/benderr/metrics/internal/agent/sender/bulksender"
-	"go.uber.org/zap"
+	"github.com/benderr/metrics/internal/agent/logger"
+	"github.com/benderr/metrics/internal/agent/metricsender"
+	"github.com/benderr/metrics/internal/agent/stats/allstats"
+	"github.com/benderr/metrics/internal/agent/stats/memstats"
+	"github.com/benderr/metrics/internal/agent/stats/psstats"
 )
 
 func main() {
@@ -16,25 +20,28 @@ func main() {
 		log.Fatal(err)
 	}
 
-	l, lerr := zap.NewDevelopment()
-	if lerr != nil {
-		panic(lerr)
-	}
-	defer l.Sync()
+	l, sync := logger.New()
 
-	sugar := *l.Sugar()
+	defer sync()
 
-	sugar.Infow(
+	l.Infow(
 		"Started with params",
 		"-address", config.Server,
 		"-report interval", config.ReportInterval,
 		"-pool interval", config.PollInterval,
+		"-key ", config.SecretKey,
 	)
 
-	//sender := urlsender.New(string(config.Server))
-	//sender := jsonsender.New(string(config.Server))
-	sender := bulksender.New(string(config.Server), &sugar)
+	sender := metricsender.MustLoad(metricsender.BULK, config, l)
+
+	ctx := context.Background()
+
 	a := agent.New(config.PollInterval, config.ReportInterval, sender)
 
-	<-a.Run()
+	stats1 := memstats.New(config.PollInterval) //метрики из runtime
+	stats2 := psstats.New(config.PollInterval)  //метрики из gopsutil
+
+	statCh := allstats.Join(ctx, stats1, stats2)
+
+	a.Run(ctx, statCh)
 }

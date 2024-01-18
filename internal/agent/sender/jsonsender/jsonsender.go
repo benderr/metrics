@@ -3,36 +3,32 @@ package jsonsender
 import (
 	"errors"
 
+	"github.com/benderr/metrics/internal/agent/apiclient"
 	"github.com/benderr/metrics/internal/agent/report"
-	"github.com/go-resty/resty/v2"
+	"github.com/benderr/metrics/internal/agent/sender/worker"
 )
 
 // Вторая версия, с передачей данных через json-body
-func New(server string) *JSONSender {
+func New(client *apiclient.Client, rateLimit int) *JSONSender {
 	return &JSONSender{
-		client: resty.New().SetBaseURL(server),
+		client:    client,
+		rateLimit: rateLimit,
 	}
 }
 
 type JSONSender struct {
-	client *resty.Client
+	client    *apiclient.Client
+	rateLimit int
 }
 
 func (h *JSONSender) Send(metrics []report.MetricItem) error {
-	allErrors := make([]error, 0)
-
-	for _, metric := range metrics {
-		m := metric
-		go func() {
-			h.client.R().
-				SetHeader("Content-Type", "application/json").
-				SetHeader("Accept-Encoding", "gzip").
-				SetBody(m).
-				Post("/update")
-		}()
-
-		//allErrors = append(allErrors, err)
-	}
-
+	allErrors := worker.Run(h.rateLimit, metrics, func(mi *report.MetricItem) error {
+		_, e := h.client.R().
+			SetHeader("Content-Type", "application/json").
+			SetHeader("Accept-Encoding", "gzip").
+			SetBody(mi).
+			Post("/update")
+		return e
+	})
 	return errors.Join(allErrors...)
 }

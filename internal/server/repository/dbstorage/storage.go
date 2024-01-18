@@ -51,16 +51,13 @@ func (m *MetricDBRepository) BulkUpdate(ctx context.Context, metrics []repositor
 		return nil
 	}
 
-	newCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	tx, err := m.db.BeginTx(newCtx, nil)
+	tx, err := m.db.BeginTx(ctx, nil)
 
 	if err != nil {
 		return err
 	}
 
-	stmt, err := tx.PrepareContext(newCtx, `INSERT INTO metrics (id, type, delta, value)
+	stmt, err := tx.PrepareContext(ctx, `INSERT INTO metrics (id, type, delta, value)
 	VALUES($1, $2, $3, $4) 
 	ON CONFLICT (id) 
 	DO UPDATE SET delta=metrics.delta + $3, value=$4`)
@@ -79,7 +76,7 @@ func (m *MetricDBRepository) BulkUpdate(ctx context.Context, metrics []repositor
 		if mtr.Value != nil {
 			value = sql.NullFloat64{Valid: true, Float64: *mtr.Value}
 		}
-		_, err := stmt.ExecContext(newCtx, mtr.ID, mtr.MType, delta, value)
+		_, err := stmt.ExecContext(ctx, mtr.ID, mtr.MType, delta, value)
 
 		if err != nil {
 			stmt.Close()

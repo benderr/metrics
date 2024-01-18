@@ -1,10 +1,12 @@
 package agent
 
 import (
+	"context"
 	"time"
 
 	"github.com/benderr/metrics/internal/agent/report"
 	"github.com/benderr/metrics/internal/agent/sender"
+	"github.com/benderr/metrics/internal/agent/stats"
 )
 
 type Agent struct {
@@ -21,45 +23,22 @@ func New(poolInterval int, reportInterval int, sender sender.MetricSender) *Agen
 	}
 }
 
-func (a *Agent) SendMetrics(r *report.Report) error {
-	metrics := make([]report.MetricItem, 0)
-
-	for name, value := range r.Counters {
-		value := value
-		metrics = append(metrics, report.MetricItem{ID: name, MType: "counter", Delta: &value})
-	}
-
-	for name, value := range r.Gauges {
-		value := value
-		metrics = append(metrics, report.MetricItem{ID: name, MType: "gauge", Value: &value})
-	}
-
+func (a *Agent) SendMetrics(metrics []report.MetricItem) error {
 	return a.sender.Send(metrics)
 }
 
-func (a *Agent) Run() <-chan struct{} {
-	done := make(chan struct{})
+func (a *Agent) Run(ctx context.Context, in <-chan []stats.Item) {
+	r := report.New()
+	reportTicker := time.NewTicker(time.Second * time.Duration(a.ReportInterval))
 
-	go func() {
-		defer close(done)
-
-		pollTicker := time.NewTicker(time.Second * time.Duration(a.PoolInterval))
-		reportTicker := time.NewTicker(time.Second * time.Duration(a.ReportInterval))
-
-		defer pollTicker.Stop()
-		defer reportTicker.Stop()
-
-		report := report.New()
-
-		for {
-			select {
-			case <-pollTicker.C:
-				report.UpdateReport()
-			case <-reportTicker.C:
-				a.SendMetrics(report)
-			}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case v := <-in:
+			r.Update(v)
+		case <-reportTicker.C:
+			a.SendMetrics(r.GetList())
 		}
-	}()
-
-	return done
+	}
 }
