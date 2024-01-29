@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/benderr/metrics/internal/agent/stats"
 	"github.com/benderr/metrics/internal/agent/stats/allstats"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestJoin(t *testing.T) {

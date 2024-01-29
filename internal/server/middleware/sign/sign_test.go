@@ -7,12 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/benderr/metrics/internal/server/logger"
-	"github.com/benderr/metrics/internal/server/middleware/sign"
-	signer "github.com/benderr/metrics/internal/sign"
 	"github.com/go-chi/chi"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/benderr/metrics/internal/server/logger"
+	"github.com/benderr/metrics/internal/server/middleware/sign"
+	signer "github.com/benderr/metrics/internal/sign"
 )
 
 type testModel struct {

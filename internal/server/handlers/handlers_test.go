@@ -10,13 +10,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/benderr/metrics/internal/server/handlers"
-	"github.com/benderr/metrics/internal/server/middleware/gziper"
-	"github.com/benderr/metrics/internal/server/repository"
 	"github.com/go-chi/chi"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/benderr/metrics/internal/server/handlers"
+	"github.com/benderr/metrics/internal/server/middleware/gziper"
+	"github.com/benderr/metrics/internal/server/repository"
 )
 
 type MockMemoryStorage struct {

@@ -3,9 +3,10 @@ package report_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/benderr/metrics/internal/agent/report"
 	"github.com/benderr/metrics/internal/agent/stats"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestReport(t *testing.T) {

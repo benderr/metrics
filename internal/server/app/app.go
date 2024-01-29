@@ -6,6 +6,8 @@ import (
 
 	"net/http/pprof"
 
+	"github.com/go-chi/chi"
+
 	"github.com/benderr/metrics/internal/server/config"
 	"github.com/benderr/metrics/internal/server/handlers"
 	"github.com/benderr/metrics/internal/server/logger"
@@ -13,7 +15,6 @@ import (
 	"github.com/benderr/metrics/internal/server/middleware/mlogger"
 	"github.com/benderr/metrics/internal/server/middleware/sign"
 	"github.com/benderr/metrics/internal/server/repository/storage"
-	"github.com/go-chi/chi"
 )
 
 type App struct {

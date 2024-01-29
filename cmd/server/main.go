@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
+
 	"github.com/benderr/metrics/internal/server/app"
 	"github.com/benderr/metrics/internal/server/config"
 	"github.com/benderr/metrics/internal/server/logger"
-	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {

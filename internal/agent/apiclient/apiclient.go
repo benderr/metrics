@@ -4,9 +4,10 @@ import (
 	"errors"
 	"time"
 
+	"github.com/go-resty/resty/v2"
+
 	"github.com/benderr/metrics/internal/agent/logger"
 	"github.com/benderr/metrics/internal/sign"
-	"github.com/go-resty/resty/v2"
 )
 
 // Расширяем апи рести под наши бизнес требования
