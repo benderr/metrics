@@ -112,7 +112,7 @@ func ExampleKeyValueMetricRepository_BulkUpdate() {
 	s := inmemory.NewFast()
 
 	var delta int64 = 1
-	var value float64 = 100.1200
+	value := 100.1200
 
 	s.BulkUpdate(opCtx, []repository.Metrics{
 		{

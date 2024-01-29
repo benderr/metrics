@@ -14,10 +14,23 @@ import (
 	"github.com/benderr/metrics/internal/sign"
 )
 
+// @Title MetricStorage API
+// @Description Metrics manager
+// @Version 1.0
+
+// @Host localhost:8080
+
 type AppHandlers struct {
 	secret     string
 	metricRepo repository.MetricRepository
 	logger     logger.Logger
+}
+
+// metricsDto model info
+// @Description metrics dto for fetch full information
+type metricsDto struct {
+	ID    string `json:"id"`   // unique metric name
+	MType string `json:"type"` // metric type enum gauge или counter
 }
 
 // New returned object AppHandlers.
@@ -131,6 +144,13 @@ func (a *AppHandlers) GetMetricListHandler(w http.ResponseWriter, r *http.Reques
 // UpdateMetricHandler handler to update metric.
 //
 // Information is received from response.Body.
+// @Description Create/update metric
+// @Param metric body metricsDto true "metric ID and MType"
+// @Success 200 {object} repository.Metrics
+// @Failure 400 {string} string "Bad request, id not specified"
+// @Failure 404 {string} string "Metric not found"
+// @Failure 500 {string} string "Internal error"
+// @Router /update [post]
 func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 	var metric repository.Metrics
@@ -169,9 +189,16 @@ func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request
 // GetMetricHandler handler to get information about metric.
 //
 // Information is received from response.Body.
+// @Description Fetch metric info
+// @Param metric body metricsDto true "metric ID and MType"
+// @Success 200 {object} repository.Metrics
+// @Failure 400 {string} string "Bad request, id not specified"
+// @Failure 404 {string} string "Metric not found"
+// @Failure 500 {string} string "Internal error"
+// @Router /value [post]
 func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
-	var metric repository.Metrics
+	var metric metricsDto
 
 	_, err := buf.ReadFrom(r.Body)
 	if err != nil {

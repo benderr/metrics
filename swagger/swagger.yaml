@@ -1,0 +1,88 @@
+definitions:
+  handlers.metricsDto:
+    description: metrics dto for fetch full information
+    properties:
+      id:
+        description: unique metric name
+        type: string
+      type:
+        description: metric type enum gauge или counter
+        type: string
+    type: object
+  repository.Metrics:
+    properties:
+      delta:
+        description: значение метрики в случае передачи counter
+        type: integer
+      id:
+        description: имя метрики
+        type: string
+      type:
+        description: параметр, принимающий значение gauge или counter
+        type: string
+      value:
+        description: значение метрики в случае передачи gauge
+        type: number
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: metrics dto for fetch full information
+  title: MetricStorage API
+  version: "1.0"
+paths:
+  /update:
+    post:
+      description: Create/update metric
+      parameters:
+      - description: metric ID and MType
+        in: body
+        name: metric
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.metricsDto'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/repository.Metrics'
+        "400":
+          description: Bad request, id not specified
+          schema:
+            type: string
+        "404":
+          description: Metric not found
+          schema:
+            type: string
+        "500":
+          description: Internal error
+          schema:
+            type: string
+  /value:
+    post:
+      description: Fetch metric info
+      parameters:
+      - description: metric ID and MType
+        in: body
+        name: metric
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.metricsDto'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/repository.Metrics'
+        "400":
+          description: Bad request, id not specified
+          schema:
+            type: string
+        "404":
+          description: Metric not found
+          schema:
+            type: string
+        "500":
+          description: Internal error
+          schema:
+            type: string
+swagger: "2.0"
