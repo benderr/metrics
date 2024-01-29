@@ -43,7 +43,7 @@ func (h *signValidator) CheckSign(next http.Handler) http.Handler {
 			signFromBody := hinst.Sum(nil)
 
 			if !hmac.Equal(sign, signFromBody) {
-				h.logger.Infow("invalid sign", sign)
+				h.logger.Infow("invalid sign", "sign", sign)
 				http.Error(w, "invalid sign", http.StatusBadRequest)
 				return
 			}

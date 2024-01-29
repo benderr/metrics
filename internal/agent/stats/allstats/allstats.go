@@ -7,11 +7,11 @@ import (
 	"github.com/benderr/metrics/internal/agent/stats"
 )
 
-type Collector interface {
+type ICollect interface {
 	Collect(ctx context.Context) <-chan []stats.Item
 }
 
-func Join(ctx context.Context, collectors ...Collector) <-chan []stats.Item {
+func Join(ctx context.Context, collectors ...ICollect) <-chan []stats.Item {
 	outCh := make(chan []stats.Item)
 	go func() {
 		wg := sync.WaitGroup{}
@@ -25,7 +25,10 @@ func Join(ctx context.Context, collectors ...Collector) <-chan []stats.Item {
 					select {
 					case <-ctx.Done():
 						return
-					case v := <-inChan:
+					case v, ok := <-inChan:
+						if !ok {
+							return
+						}
 						outCh <- v
 					}
 				}

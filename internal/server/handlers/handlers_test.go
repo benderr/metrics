@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/benderr/metrics/internal/server/handlers"
 	"github.com/benderr/metrics/internal/server/middleware/gziper"
 	"github.com/benderr/metrics/internal/server/repository"
 	"github.com/go-chi/chi"
@@ -101,7 +102,7 @@ func TestUpdateMetricByUrlHandler(t *testing.T) {
 		Metrics: make(map[string]repository.Metrics),
 	}
 
-	h := New(&store, &MockLogger{}, "")
+	h := handlers.New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -204,7 +205,7 @@ func TestGetMetricByUrlHandler(t *testing.T) {
 		},
 	}
 
-	h := New(&store, &MockLogger{}, "")
+	h := handlers.New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -300,7 +301,7 @@ func TestGetMetricList(t *testing.T) {
 		},
 	}
 
-	h := New(&store, &MockLogger{}, "")
+	h := handlers.New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -335,7 +336,7 @@ func TestGetMetricHandler(t *testing.T) {
 		},
 	}
 
-	h := New(&store, &MockLogger{}, "")
+	h := handlers.New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -421,7 +422,7 @@ func TestUpdateMetricHandler(t *testing.T) {
 		},
 	}
 
-	h := New(&store, &MockLogger{}, "")
+	h := handlers.New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	h.AddHandlers(r)
 	server := httptest.NewServer(r)
@@ -498,7 +499,7 @@ func TestGetMetricAcceptGzipOutputHandler(t *testing.T) {
 		},
 	}
 
-	h := New(&store, &MockLogger{}, "")
+	h := handlers.New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	g := gziper.New(1, "application/json", "text/html")
 	r.Use(g.TransformWriter)
@@ -541,7 +542,7 @@ func TestGetMetricAcceptGzipInputHandler(t *testing.T) {
 		},
 	}
 
-	h := New(&store, &MockLogger{}, "")
+	h := handlers.New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	g := gziper.New(1, "application/json", "text/html")
 	r.Use(g.TransformWriter)
@@ -580,7 +581,7 @@ func TestBulkUpdateHandler(t *testing.T) {
 		Metrics: make(map[string]repository.Metrics),
 	}
 
-	h := New(&store, &MockLogger{}, "")
+	h := handlers.New(&store, &MockLogger{}, "")
 	r := chi.NewRouter()
 	g := gziper.New(1, "application/json", "text/html")
 	r.Use(g.TransformWriter)
@@ -638,6 +639,71 @@ func TestBulkUpdateHandler(t *testing.T) {
 
 			assert.Equal(t, test.want.code, resp.StatusCode())
 		})
+	}
+}
+
+func TestParseCounter(t *testing.T) {
+	t.Run("should parse counter success", func(t *testing.T) {
+		m, err := handlers.ParseCounter("counter", "test", "10")
+		assert.NoError(t, err)
+		assert.Equal(t, *m.Delta, int64(10))
+		assert.Equal(t, m.MType, "counter")
+		assert.Equal(t, m.ID, "test")
+	})
+
+	t.Run("should parse counter error delta", func(t *testing.T) {
+		_, err := handlers.ParseCounter("counter", "test", "10b")
+		assert.Error(t, err, "invalid delta")
+	})
+
+	t.Run("should parse counter error", func(t *testing.T) {
+		_, err := handlers.ParseCounter("counter1", "test", "10b")
+		assert.Error(t, err, "invalid metric type")
+	})
+}
+
+func TestParseGauge(t *testing.T) {
+	t.Run("should parse gauge success", func(t *testing.T) {
+		m, err := handlers.ParseGauge("gauge", "test", "10.1")
+		assert.NoError(t, err)
+		assert.Equal(t, *m.Value, float64(10.1))
+		assert.Equal(t, m.MType, "gauge")
+		assert.Equal(t, m.ID, "test")
+	})
+
+	t.Run("should parse gauge error value", func(t *testing.T) {
+		_, err := handlers.ParseCounter("counter", "test", "10b")
+		assert.Error(t, err, "invalid value")
+	})
+
+	t.Run("should parse gauge error", func(t *testing.T) {
+		_, err := handlers.ParseCounter("gauge1", "test", "10b")
+		assert.Error(t, err, "invalid metric type")
+	})
+}
+
+func BenchmarkGetMetricHandler(b *testing.B) {
+	var delta int64 = 1
+	val1 := 100.1200
+
+	var store = MockMemoryStorage{
+		Metrics: map[string]repository.Metrics{
+			"test":  {ID: "test", Delta: &delta, MType: "counter"},
+			"test2": {ID: "test2", Value: &val1, MType: "gauge"},
+		},
+	}
+	h := handlers.New(&store, &MockLogger{}, "")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		v, _ := json.Marshal(&repository.Metrics{
+			ID:    "test",
+			MType: "gauge",
+		})
+		req, _ := http.NewRequestWithContext(context.Background(), "GET", "/", bytes.NewBuffer(v))
+		rw := httptest.NewRecorder()
+		b.StartTimer()
+		h.GetMetricHandler(rw, req)
 	}
 }
 

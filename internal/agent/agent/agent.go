@@ -10,16 +10,14 @@ import (
 )
 
 type Agent struct {
-	PoolInterval   int
-	ReportInterval int
-	sender         sender.MetricSender
+	PoolInterval int
+	sender       sender.MetricSender
 }
 
-func New(poolInterval int, reportInterval int, sender sender.MetricSender) *Agent {
+func New(poolInterval int, sender sender.MetricSender) *Agent {
 	return &Agent{
-		PoolInterval:   poolInterval,
-		ReportInterval: reportInterval,
-		sender:         sender,
+		PoolInterval: poolInterval,
+		sender:       sender,
 	}
 }
 
@@ -27,17 +25,15 @@ func (a *Agent) SendMetrics(metrics []report.MetricItem) error {
 	return a.sender.Send(metrics)
 }
 
-func (a *Agent) Run(ctx context.Context, in <-chan []stats.Item) {
+func (a *Agent) Run(ctx context.Context, in <-chan []stats.Item, sendSignal <-chan time.Time) {
 	r := report.New()
-	reportTicker := time.NewTicker(time.Second * time.Duration(a.ReportInterval))
-
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case v := <-in:
 			r.Update(v)
-		case <-reportTicker.C:
+		case <-sendSignal:
 			a.SendMetrics(r.GetList())
 		}
 	}

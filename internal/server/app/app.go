@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"net/http/pprof"
+
 	"github.com/benderr/metrics/internal/server/config"
 	"github.com/benderr/metrics/internal/server/handlers"
 	"github.com/benderr/metrics/internal/server/logger"
@@ -43,6 +45,15 @@ func (a *App) Run(ctx context.Context) error {
 	chiRouter.Use(mwlog.Middleware)
 	chiRouter.Use(mwgzip.TransformWriter)
 	chiRouter.Use(mwgzip.TransformReader)
+
+	// register pprof methods
+	chiRouter.Route("/debug/pprof", func(r chi.Router) {
+		r.HandleFunc("/cmdline", pprof.Cmdline)
+		r.HandleFunc("/profile", pprof.Profile)
+		r.HandleFunc("/symbol", pprof.Symbol)
+		r.HandleFunc("/trace", pprof.Trace)
+		r.HandleFunc("/*", pprof.Index)
+	})
 
 	h.AddHandlers(chiRouter)
 

@@ -7,15 +7,15 @@ import (
 	"github.com/benderr/metrics/internal/server/repository"
 )
 
+type InMemoryMetricRepository struct {
+	Metrics []repository.Metrics
+	mu      sync.Mutex
+}
+
 func New() *InMemoryMetricRepository {
 	return &InMemoryMetricRepository{
 		Metrics: make([]repository.Metrics, 0),
 	}
-}
-
-type InMemoryMetricRepository struct {
-	Metrics []repository.Metrics
-	mu      sync.Mutex
 }
 
 func (m *InMemoryMetricRepository) Update(ctx context.Context, mtr repository.Metrics) (*repository.Metrics, error) {

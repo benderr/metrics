@@ -43,7 +43,7 @@ func New(ctx context.Context, config *config.Config, logger repository.Logger) (
 		repo = fs
 
 	default:
-		repo = inmemory.New()
+		repo = inmemory.NewFast()
 	}
 	return repo, nil
 }
