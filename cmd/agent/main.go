@@ -1,3 +1,18 @@
+// Package agent start process to collect metrics from gopsutil and runtime.MemStats.
+//
+// You can configure the following parameters:
+//
+// -a - server url for store metrics
+//
+// -r - report send to server interval (seconds)
+//
+// -p - create report interval (seconds)
+//
+// -k - secret key for signing request body
+//
+// For more information use:
+//
+//	cmd/server/server --help
 package main
 
 import (

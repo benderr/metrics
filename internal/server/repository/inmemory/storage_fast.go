@@ -7,18 +7,24 @@ import (
 	"github.com/benderr/metrics/internal/server/repository"
 )
 
-type keyValueMetricRepository struct {
+type KeyValueMetricRepository struct {
 	Metrics map[string]*repository.Metrics
 	mu      sync.Mutex
 }
 
-func NewFast() *keyValueMetricRepository {
-	return &keyValueMetricRepository{
+// NewFast return in-memory repository instance.
+//
+// This implementation uses a map that is faster than the version based on slice.
+//
+// It's safe for concurrent use by multiple
+// goroutines.
+func NewFast() *KeyValueMetricRepository {
+	return &KeyValueMetricRepository{
 		Metrics: make(map[string]*repository.Metrics, 0),
 	}
 }
 
-func (m *keyValueMetricRepository) Update(ctx context.Context, mtr repository.Metrics) (*repository.Metrics, error) {
+func (m *KeyValueMetricRepository) Update(ctx context.Context, mtr repository.Metrics) (*repository.Metrics, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -42,14 +48,15 @@ func (m *keyValueMetricRepository) Update(ctx context.Context, mtr repository.Me
 	}
 }
 
-func (m *keyValueMetricRepository) Get(ctx context.Context, id string) (*repository.Metrics, error) {
+// Get returned information about metric by ID
+func (m *KeyValueMetricRepository) Get(ctx context.Context, id string) (*repository.Metrics, error) {
 	if v, ok := m.Metrics[id]; ok {
 		return v, nil
 	}
 	return nil, nil
 }
 
-func (m *keyValueMetricRepository) GetList(ctx context.Context) ([]repository.Metrics, error) {
+func (m *KeyValueMetricRepository) GetList(ctx context.Context) ([]repository.Metrics, error) {
 	res := make([]repository.Metrics, 0)
 	for _, val := range m.Metrics {
 		res = append(res, *val)
@@ -57,11 +64,12 @@ func (m *keyValueMetricRepository) GetList(ctx context.Context) ([]repository.Me
 	return res, nil
 }
 
-func (m *keyValueMetricRepository) PingContext(ctx context.Context) error {
+func (m *KeyValueMetricRepository) PingContext(ctx context.Context) error {
 	return nil
 }
 
-func (m *keyValueMetricRepository) BulkUpdate(ctx context.Context, metrics []repository.Metrics) error {
+// BulkUpdate insert or update slice of metric to map-storage.
+func (m *KeyValueMetricRepository) BulkUpdate(ctx context.Context, metrics []repository.Metrics) error {
 
 	if len(metrics) == 0 {
 		return nil

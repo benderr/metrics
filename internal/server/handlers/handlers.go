@@ -1,3 +1,4 @@
+// Package handlers contain all endpoints with handlers to manage metrics
 package handlers
 
 import (
@@ -19,6 +20,11 @@ type AppHandlers struct {
 	logger     logger.Logger
 }
 
+// New returned object AppHandlers.
+// Usage:
+//
+//	h := handlers.New(repo, logger, secret)
+//	h.AddHandlers(chiRouter)
 func New(repo repository.MetricRepository, logger logger.Logger, secret string) AppHandlers {
 	return AppHandlers{
 		metricRepo: repo,
@@ -27,6 +33,7 @@ func New(repo repository.MetricRepository, logger logger.Logger, secret string) 
 	}
 }
 
+// AddHandlers registers handlers in *chi.Mux
 func (a *AppHandlers) AddHandlers(r *chi.Mux) {
 	r.Get("/", a.GetMetricListHandler)
 	r.Post("/update/{type}/{name}/{value}", a.UpdateMetricByURLHandler)
@@ -45,6 +52,9 @@ func (a *AppHandlers) AddHandlers(r *chi.Mux) {
 	})
 }
 
+// UpdateMetricByURLHandler handler to update metric.
+//
+// Information is received via URL.
 func (a *AppHandlers) UpdateMetricByURLHandler(w http.ResponseWriter, r *http.Request) {
 	memType := chi.URLParam(r, "type")
 	name := chi.URLParam(r, "name")
@@ -65,6 +75,9 @@ func (a *AppHandlers) UpdateMetricByURLHandler(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusBadRequest)
 }
 
+// GetMetricByURLHandler handler to get information about metric.
+//
+// Information is received via URL.
 func (a *AppHandlers) GetMetricByURLHandler(w http.ResponseWriter, r *http.Request) {
 	memType := chi.URLParam(r, "type")
 	name := chi.URLParam(r, "name")
@@ -90,6 +103,7 @@ func (a *AppHandlers) GetMetricByURLHandler(w http.ResponseWriter, r *http.Reque
 	w.Write([]byte(metric.GetStringValue()))
 }
 
+// GetMetricListHandler handler for obtaining information about all metrics.
 func (a *AppHandlers) GetMetricListHandler(w http.ResponseWriter, r *http.Request) {
 	var output bytes.Buffer
 
@@ -114,6 +128,9 @@ func (a *AppHandlers) GetMetricListHandler(w http.ResponseWriter, r *http.Reques
 	w.Write(output.Bytes())
 }
 
+// UpdateMetricHandler handler to update metric.
+//
+// Information is received from response.Body.
 func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 	var metric repository.Metrics
@@ -149,6 +166,9 @@ func (a *AppHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request
 	w.Write(res)
 }
 
+// GetMetricHandler handler to get information about metric.
+//
+// Information is received from response.Body.
 func (a *AppHandlers) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 	var metric repository.Metrics
@@ -206,6 +226,8 @@ func (a *AppHandlers) PingDBHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// BulkUpdateHandler handler to update metrics,
+// this method expected array of metrics in response.Body.
 func (a *AppHandlers) BulkUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 	metrics := make([]repository.Metrics, 0)

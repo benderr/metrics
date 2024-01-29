@@ -18,6 +18,15 @@ const (
 	BULK
 )
 
+// MustLoad fabric method returned service for send metric to server.
+//
+// Send strategy depends SenderMode.
+//
+// URL - send the metric using the POST method, the information is sent in the URL.
+//
+// JSON - send the metric using the POST method, the information is sent in the request.Body.
+//
+// BULK - send metrics in batches using the POST method.
 func MustLoad(mode SenderMode, config *agentconfig.EnvConfig, logger logger.Logger) sender.MetricSender {
 
 	client := apiclient.New(string(config.Server), config.SecretKey, logger)

@@ -1,3 +1,4 @@
+// Package retry that provides functions to re-execute a function if an error occurs
 package retry
 
 import (
@@ -5,6 +6,7 @@ import (
 	"time"
 )
 
+// DoWithValue function makes it possible to execute a function that returns a specific type
 func DoWithValue[T any](fn func() (T, error), canRetry func(attempt int, err error) bool) (T, error) {
 	attempt := 0
 	allErrors := make([]error, 0)

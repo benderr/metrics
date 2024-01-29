@@ -12,6 +12,10 @@ type InMemoryMetricRepository struct {
 	mu      sync.Mutex
 }
 
+// New returned InMemoryMetricRepository object
+// which implement MetricRepository
+// It's safe for concurrent use by multiple
+// goroutines.
 func New() *InMemoryMetricRepository {
 	return &InMemoryMetricRepository{
 		Metrics: make([]repository.Metrics, 0),
@@ -44,6 +48,7 @@ func (m *InMemoryMetricRepository) Update(ctx context.Context, mtr repository.Me
 	}
 }
 
+// Get returned information about metric by ID
 func (m *InMemoryMetricRepository) Get(ctx context.Context, id string) (*repository.Metrics, error) {
 	for i, metric := range m.Metrics {
 		if metric.ID == id {
@@ -61,6 +66,7 @@ func (m *InMemoryMetricRepository) PingContext(ctx context.Context) error {
 	return nil
 }
 
+// BulkUpdate insert or update slice of metric to slice-storage.
 func (m *InMemoryMetricRepository) BulkUpdate(ctx context.Context, metrics []repository.Metrics) error {
 
 	if len(metrics) == 0 {

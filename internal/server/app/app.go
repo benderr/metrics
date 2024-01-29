@@ -1,3 +1,4 @@
+// Package app return instance of App for starting server
 package app
 
 import (
@@ -17,11 +18,13 @@ import (
 	"github.com/benderr/metrics/internal/server/repository/storage"
 )
 
+// App consisting only one method Run to start server
 type App struct {
 	config *config.Config
 	log    logger.Logger
 }
 
+// New return a new App object
 func New(config *config.Config, log logger.Logger) *App {
 	return &App{
 		config: config,
@@ -29,6 +32,7 @@ func New(config *config.Config, log logger.Logger) *App {
 	}
 }
 
+// Run create storage which depends on config and listens on the TCP network address addr and then calls
 func (a *App) Run(ctx context.Context) error {
 
 	repo, err := storage.New(ctx, a.config, a.log)

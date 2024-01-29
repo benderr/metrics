@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/benderr/metrics/internal/server/repository"
 	"github.com/benderr/metrics/internal/server/repository/inmemory"
@@ -92,5 +93,37 @@ func BenchmarkBulkUpdate(b *testing.B) {
 				b.Failed()
 			}
 		}
+	})
+}
+
+func ExampleKeyValueMetricRepository_Get() {
+	opCtx, opCancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer opCancel()
+
+	s := inmemory.NewFast()
+
+	s.Get(opCtx, "some-test-id")
+}
+
+func ExampleKeyValueMetricRepository_BulkUpdate() {
+	opCtx, opCancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer opCancel()
+
+	s := inmemory.NewFast()
+
+	var delta int64 = 1
+	var value float64 = 100.1200
+
+	s.BulkUpdate(opCtx, []repository.Metrics{
+		{
+			ID:    "some-test-id",
+			MType: "gauge",
+			Value: &value,
+		},
+		{
+			ID:    "some-test-id-2",
+			MType: "counter",
+			Delta: &delta,
+		},
 	})
 }
