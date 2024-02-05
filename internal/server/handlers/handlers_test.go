@@ -16,8 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/benderr/metrics/internal/server/handlers"
-	"github.com/benderr/metrics/internal/server/middleware/gziper"
 	"github.com/benderr/metrics/internal/server/repository"
+	"github.com/benderr/metrics/pkg/gziper"
 )
 
 type MockMemoryStorage struct {

@@ -11,7 +11,7 @@ import (
 
 	"github.com/benderr/metrics/internal/server/logger"
 	"github.com/benderr/metrics/internal/server/repository"
-	"github.com/benderr/metrics/internal/sign"
+	"github.com/benderr/metrics/pkg/sign"
 )
 
 // @Title MetricStorage API

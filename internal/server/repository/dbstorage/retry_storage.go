@@ -8,8 +8,8 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"github.com/benderr/metrics/internal/retry"
 	"github.com/benderr/metrics/internal/server/repository"
+	"github.com/benderr/metrics/pkg/retry"
 )
 
 // Оборачиваем репозиторий с добавлением возможности повтора операции при ошибках

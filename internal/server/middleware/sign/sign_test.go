@@ -13,7 +13,7 @@ import (
 
 	"github.com/benderr/metrics/internal/server/logger"
 	"github.com/benderr/metrics/internal/server/middleware/sign"
-	signer "github.com/benderr/metrics/internal/sign"
+	signer "github.com/benderr/metrics/pkg/sign"
 )
 
 type testModel struct {

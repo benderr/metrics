@@ -6,9 +6,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/benderr/metrics/internal/retry"
 	"github.com/benderr/metrics/internal/server/repository"
 	"github.com/benderr/metrics/internal/server/repository/inmemory"
+	"github.com/benderr/metrics/pkg/retry"
 )
 
 // FileMetricRepository consisting of the core methods used by App

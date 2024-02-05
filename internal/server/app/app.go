@@ -12,10 +12,10 @@ import (
 	"github.com/benderr/metrics/internal/server/config"
 	"github.com/benderr/metrics/internal/server/handlers"
 	"github.com/benderr/metrics/internal/server/logger"
-	"github.com/benderr/metrics/internal/server/middleware/gziper"
 	"github.com/benderr/metrics/internal/server/middleware/mlogger"
 	"github.com/benderr/metrics/internal/server/middleware/sign"
 	"github.com/benderr/metrics/internal/server/repository/storage"
+	"github.com/benderr/metrics/pkg/gziper"
 )
 
 // App consisting only one method Run to start server
