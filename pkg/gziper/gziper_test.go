@@ -56,7 +56,10 @@ func TestGzipCompressor_TransformReader(t *testing.T) {
 
 	r := httptest.NewRecorder()
 	handlerToTest.ServeHTTP(r, req)
-	assert.Equal(t, r.Result().StatusCode, 200)
+	resp := r.Result()
+	defer resp.Body.Close()
+	assert.Equal(t, resp.StatusCode, 200)
+
 }
 
 func compress(s []byte) ([]byte, error) {
