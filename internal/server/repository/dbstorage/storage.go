@@ -9,6 +9,12 @@ import (
 	"github.com/benderr/metrics/internal/server/repository"
 )
 
+// MetricDBRepository is a database handle, which implements MetricRepository
+type MetricDBRepository struct {
+	db  *sql.DB
+	log repository.Logger
+}
+
 func New(db *sql.DB, log repository.Logger) *MetricDBRepository {
 	return &MetricDBRepository{
 		db:  db,
@@ -16,11 +22,9 @@ func New(db *sql.DB, log repository.Logger) *MetricDBRepository {
 	}
 }
 
-type MetricDBRepository struct {
-	db  *sql.DB
-	log repository.Logger
-}
-
+// Update insert or update metric.
+//
+// If metric exist, then update delta and value field, otherwise new metric inserted
 func (m *MetricDBRepository) Update(ctx context.Context, mtr repository.Metrics) (*repository.Metrics, error) {
 	delta := sql.NullInt64{}
 	value := sql.NullFloat64{}
@@ -45,6 +49,9 @@ func (m *MetricDBRepository) Update(ctx context.Context, mtr repository.Metrics)
 	return m.Get(ctx, mtr.ID)
 }
 
+// BulkUpdate insert or update slice of metric.
+//
+// Warning! Method starts a transaction, if one of executes a prepared statement failed, then transaction rollback
 func (m *MetricDBRepository) BulkUpdate(ctx context.Context, metrics []repository.Metrics) error {
 
 	if len(metrics) == 0 {
@@ -98,6 +105,7 @@ func (m *MetricDBRepository) BulkUpdate(ctx context.Context, metrics []repositor
 	return err
 }
 
+// Get return pointer of existed metric by ID or return nil
 func (m *MetricDBRepository) Get(ctx context.Context, id string) (*repository.Metrics, error) {
 	row := m.db.QueryRowContext(ctx, "SELECT id, type, delta, value from metrics WHERE id = $1", id)
 	var v repository.Metrics
@@ -113,6 +121,7 @@ func (m *MetricDBRepository) Get(ctx context.Context, id string) (*repository.Me
 	return &v, nil
 }
 
+// GetList return all existed metrics in db
 func (m *MetricDBRepository) GetList(ctx context.Context) ([]repository.Metrics, error) {
 	metrics := make([]repository.Metrics, 0)
 
@@ -152,6 +161,7 @@ func (m *MetricDBRepository) PingContext(ctx context.Context) error {
 	return nil
 }
 
+// Prepare execute migration query from ./init.sql file
 func (m *MetricDBRepository) Prepare(ctx context.Context) error {
 	if err := m.PingContext(ctx); err != nil {
 		return err

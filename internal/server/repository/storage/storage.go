@@ -12,6 +12,13 @@ import (
 	"github.com/benderr/metrics/internal/server/repository/inmemory"
 )
 
+// New is Factory Method for create storage, depends on config.
+//
+// If config.DatabaseDsn is defined then the sql database based repository is returned.
+//
+// If config.FileStoragePath is defined then returned in-memory repository with backup/restore features
+//
+// Otherwise method returned clean in-memory repository
 func New(ctx context.Context, config *config.Config, logger repository.Logger) (repository.MetricRepository, error) {
 	var repo repository.MetricRepository
 	switch {
@@ -43,7 +50,7 @@ func New(ctx context.Context, config *config.Config, logger repository.Logger) (
 		repo = fs
 
 	default:
-		repo = inmemory.New()
+		repo = inmemory.NewFast()
 	}
 	return repo, nil
 }

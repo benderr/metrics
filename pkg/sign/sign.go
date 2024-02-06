@@ -1,3 +1,4 @@
+// Package sign contain method for generate sha256 hashed string
 package sign
 
 import (

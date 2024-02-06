@@ -1,8 +1,10 @@
+// Package gziper contains functionality for creating a middleware for data compression and decompression
 package gziper
 
 import (
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -10,6 +12,7 @@ import (
 	_ "github.com/go-chi/chi/middleware"
 )
 
+// New returns an object containing middleware methods for compression response body and decompression request body
 func New(level int, contentTypes ...string) *GzipCompressor {
 	allowedTypes := make(map[string]struct{})
 	for _, t := range contentTypes {
@@ -53,6 +56,7 @@ func (g *GzipCompressor) TransformReader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		contentEncoding := r.Header.Get("Content-Encoding")
 		sendsGzip := strings.Contains(contentEncoding, "gzip")
+		fmt.Println(contentEncoding, sendsGzip)
 		if sendsGzip {
 			cr, err := newCompressReader(r.Body)
 			if err != nil {

@@ -6,11 +6,12 @@ import (
 	"io"
 	"os"
 
-	"github.com/benderr/metrics/internal/retry"
 	"github.com/benderr/metrics/internal/server/repository"
 	"github.com/benderr/metrics/internal/server/repository/inmemory"
+	"github.com/benderr/metrics/pkg/retry"
 )
 
+// FileMetricRepository consisting of the core methods used by App
 type FileMetricRepository struct {
 	sync bool
 	repository.MetricRepository
@@ -18,6 +19,11 @@ type FileMetricRepository struct {
 	logger   repository.Logger
 }
 
+// New returns a new FileMetricRepository object
+// thatimplements the MetricRepository interface.
+//
+// This repository used an in-memory repository
+// with the addition of additional methods for backup and restoring
 func New(filePath string, sync bool, logger repository.Logger) *FileMetricRepository {
 	var repo repository.MetricRepository = inmemory.New()
 
@@ -37,6 +43,12 @@ func (f *FileMetricRepository) getFile() (io.ReadWriteCloser, error) {
 	return file, nil
 }
 
+// Update insert or update metric.
+//
+// If metric exist, then update delta and value field,
+// otherwise new metric inserted
+//
+// If FileMetricRepository.sync=true then the metrics are also saved to the file
 func (f *FileMetricRepository) Update(ctx context.Context, metric repository.Metrics) (*repository.Metrics, error) {
 	res, err := f.MetricRepository.Update(ctx, metric)
 	if err != nil {
@@ -50,6 +62,9 @@ func (f *FileMetricRepository) Update(ctx context.Context, metric repository.Met
 	return res, err
 }
 
+// BulkUpdate insert or update slice of metric.
+//
+// If FileMetricRepository.sync=true then the metrics are also saved to the file
 func (f *FileMetricRepository) BulkUpdate(ctx context.Context, metrics []repository.Metrics) error {
 
 	if len(metrics) == 0 {
@@ -70,6 +85,7 @@ func (f *FileMetricRepository) BulkUpdate(ctx context.Context, metrics []reposit
 	return nil
 }
 
+// Sync saved metrics from memory to file
 func (f *FileMetricRepository) Sync(ctx context.Context) error {
 	return retry.Do(func() error {
 		w, err := f.getFile()
@@ -94,6 +110,7 @@ func (f *FileMetricRepository) Sync(ctx context.Context) error {
 	}, retry.DefaultRetryCondition)
 }
 
+// Restore load metrics from file to memory
 func (f *FileMetricRepository) Restore(ctx context.Context) error {
 	return retry.Do(func() error {
 		r, err := f.getFile()

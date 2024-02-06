@@ -1,8 +1,24 @@
+// Package agent start process to collect metrics from gopsutil and runtime.MemStats.
+//
+// You can configure the following parameters:
+//
+// -a - server url for store metrics
+//
+// -r - report send to server interval (seconds)
+//
+// -p - create report interval (seconds)
+//
+// -k - secret key for signing request body
+//
+// For more information use:
+//
+//	cmd/server/server --help
 package main
 
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/benderr/metrics/internal/agent/agent"
 	agentconfig "github.com/benderr/metrics/internal/agent/config"
@@ -36,12 +52,12 @@ func main() {
 
 	ctx := context.Background()
 
-	a := agent.New(config.PollInterval, config.ReportInterval, sender)
+	a := agent.New(config.PollInterval, sender)
 
 	stats1 := memstats.New(config.PollInterval) //метрики из runtime
 	stats2 := psstats.New(config.PollInterval)  //метрики из gopsutil
 
 	statCh := allstats.Join(ctx, stats1, stats2)
 
-	a.Run(ctx, statCh)
+	a.Run(ctx, statCh, time.NewTicker(time.Second*time.Duration(config.ReportInterval)).C)
 }

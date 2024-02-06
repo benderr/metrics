@@ -1,24 +1,30 @@
+// Package app return instance of App for starting server
 package app
 
 import (
 	"context"
 	"net/http"
 
+	"net/http/pprof"
+
+	"github.com/go-chi/chi"
+
 	"github.com/benderr/metrics/internal/server/config"
 	"github.com/benderr/metrics/internal/server/handlers"
 	"github.com/benderr/metrics/internal/server/logger"
-	"github.com/benderr/metrics/internal/server/middleware/gziper"
 	"github.com/benderr/metrics/internal/server/middleware/mlogger"
 	"github.com/benderr/metrics/internal/server/middleware/sign"
 	"github.com/benderr/metrics/internal/server/repository/storage"
-	"github.com/go-chi/chi"
+	"github.com/benderr/metrics/pkg/gziper"
 )
 
+// App consisting only one method Run to start server
 type App struct {
 	config *config.Config
 	log    logger.Logger
 }
 
+// New return a new App object
 func New(config *config.Config, log logger.Logger) *App {
 	return &App{
 		config: config,
@@ -26,6 +32,7 @@ func New(config *config.Config, log logger.Logger) *App {
 	}
 }
 
+// Run create storage which depends on config and listens on the TCP network address addr and then calls
 func (a *App) Run(ctx context.Context) error {
 
 	repo, err := storage.New(ctx, a.config, a.log)
@@ -43,6 +50,15 @@ func (a *App) Run(ctx context.Context) error {
 	chiRouter.Use(mwlog.Middleware)
 	chiRouter.Use(mwgzip.TransformWriter)
 	chiRouter.Use(mwgzip.TransformReader)
+
+	// register pprof methods
+	chiRouter.Route("/debug/pprof", func(r chi.Router) {
+		r.HandleFunc("/cmdline", pprof.Cmdline)
+		r.HandleFunc("/profile", pprof.Profile)
+		r.HandleFunc("/symbol", pprof.Symbol)
+		r.HandleFunc("/trace", pprof.Trace)
+		r.HandleFunc("/*", pprof.Index)
+	})
 
 	h.AddHandlers(chiRouter)
 
