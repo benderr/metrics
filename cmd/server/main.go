@@ -25,6 +25,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
@@ -33,7 +34,17 @@ import (
 	"github.com/benderr/metrics/internal/server/logger"
 )
 
+var (
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
+)
+
 func main() {
+	fmt.Println("Build version:", buildVersion)
+	fmt.Println("Build date:", buildDate)
+	fmt.Println("Build commit:", buildCommit)
+
 	config := config.MustLoad()
 
 	logger, sync := logger.New()

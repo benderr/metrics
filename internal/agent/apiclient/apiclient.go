@@ -29,20 +29,34 @@ func New(server string, secret string, logger logger.Logger) *Client {
 	}
 }
 
+const (
+	ATTEMPT_1 int = 1
+	ATTEMPT_2 int = 2
+	ATTEMPT_3 int = 3
+)
+
+const (
+	WAIT_1 int = 1
+	WAIT_2 int = 3
+	WAIT_3 int = 5
+)
+
+const MAX_RETRIES int64 = 5
+
 // Кастомный конфиг для ретраев
 func (a *Client) SetCustomRetries(count int) *Client {
 	a.SetRetryWaitTime(1 * time.Second).
-		SetRetryMaxWaitTime(5 * time.Second).
+		SetRetryMaxWaitTime(time.Duration(MAX_RETRIES) * time.Second).
 		SetRetryCount(count).
 		SetRetryAfter(func(client *resty.Client, resp *resty.Response) (time.Duration, error) {
 			wait := 0
 			switch resp.Request.Attempt {
-			case 1:
-				wait = 1
-			case 2:
-				wait = 3
-			case 3:
-				wait = 5
+			case ATTEMPT_1:
+				wait = WAIT_1
+			case ATTEMPT_2:
+				wait = WAIT_2
+			case ATTEMPT_3:
+				wait = WAIT_3
 			}
 			if wait > 0 {
 				return time.Duration(wait) * time.Second, nil
