@@ -26,7 +26,7 @@ import (
 	"golang.org/x/tools/go/analysis/multichecker"
 )
 
-const Config = `./staticcheck.conf`
+const Config = `./staticcheck.config`
 
 func main() {
 

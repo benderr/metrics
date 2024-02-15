@@ -30,7 +30,7 @@ func (address *ServerAddress) Set(flagValue string) error {
 }
 
 const (
-	DEFAULT_STORE_INTERVAL int = 300
+	defaultStoreInterval int = 300
 )
 
 type Config struct {
@@ -44,7 +44,7 @@ type Config struct {
 
 var config = Config{
 	Server:          ":8080",
-	StoreInterval:   DEFAULT_STORE_INTERVAL,
+	StoreInterval:   defaultStoreInterval,
 	FileStoragePath: "/tmp/metrics-db.json",
 	Restore:         true,
 	DatabaseDsn:     "",
@@ -53,7 +53,7 @@ var config = Config{
 
 func init() {
 	flag.Var(&config.Server, "a", "address and port to run server")
-	flag.IntVar(&config.StoreInterval, "i", DEFAULT_STORE_INTERVAL, "report save interval (seconds)")
+	flag.IntVar(&config.StoreInterval, "i", defaultStoreInterval, "report save interval (seconds)")
 	flag.StringVar(&config.FileStoragePath, "f", "/tmp/metrics-db.json", "report store file name")
 	flag.BoolVar(&config.Restore, "r", true, "restore report from file")
 	flag.StringVar(&config.DatabaseDsn, "d", "", "connection string for postgre")
