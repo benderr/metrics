@@ -1,3 +1,4 @@
+// Package stats contain DTO for collect stats
 package stats
 
 type Item struct {

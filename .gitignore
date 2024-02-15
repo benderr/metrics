@@ -28,3 +28,4 @@ vendor/
 metricstest
 metrics.json
 testcommands.txt
+statictest-darwin-arm64
