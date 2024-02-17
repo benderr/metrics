@@ -9,22 +9,22 @@ import (
 	"github.com/benderr/metrics/internal/agent/stats"
 )
 
-type memStats struct {
-	PoolInterval int
+type MemStats struct {
+	interval time.Duration
 }
 
-// Сбор метрик из runtime.MemStats
-func New(poolInterval int) *memStats {
-	return &memStats{
-		PoolInterval: poolInterval,
+// New return memStats for collect runtime metrics
+func New(t time.Duration) *MemStats {
+	return &MemStats{
+		interval: t,
 	}
 }
 
-func (m *memStats) Collect(ctx context.Context) <-chan []stats.Item {
+func (m *MemStats) Collect(ctx context.Context) <-chan []stats.Item {
 	outCh := make(chan []stats.Item)
 	go func() {
 		defer close(outCh)
-		pollTicker := time.NewTicker(time.Second * time.Duration(m.PoolInterval))
+		pollTicker := time.NewTicker(m.interval)
 		defer pollTicker.Stop()
 
 		for {
@@ -40,7 +40,7 @@ func (m *memStats) Collect(ctx context.Context) <-chan []stats.Item {
 	return outCh
 }
 
-func (m *memStats) getStats() []stats.Item {
+func (m *MemStats) getStats() []stats.Item {
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
 

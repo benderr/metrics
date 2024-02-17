@@ -24,9 +24,11 @@ import (
 	agentconfig "github.com/benderr/metrics/internal/agent/config"
 	"github.com/benderr/metrics/internal/agent/logger"
 	"github.com/benderr/metrics/internal/agent/metricsender"
+	"github.com/benderr/metrics/internal/agent/report"
 	"github.com/benderr/metrics/internal/agent/stats/allstats"
 	"github.com/benderr/metrics/internal/agent/stats/memstats"
 	"github.com/benderr/metrics/internal/agent/stats/psstats"
+	"github.com/benderr/metrics/internal/agent/ticker"
 )
 
 func main() {
@@ -52,12 +54,12 @@ func main() {
 
 	ctx := context.Background()
 
-	a := agent.New(config.PollInterval, sender)
+	a := agent.New(sender, report.New())
 
-	stats1 := memstats.New(config.PollInterval) //метрики из runtime
-	stats2 := psstats.New(config.PollInterval)  //метрики из gopsutil
+	stats1 := memstats.New(time.Second * time.Duration(config.PollInterval))
+	stats2 := psstats.New(time.Second * time.Duration(config.PollInterval))
 
 	statCh := allstats.Join(ctx, stats1, stats2)
 
-	a.Run(ctx, statCh, time.NewTicker(time.Second*time.Duration(config.ReportInterval)).C)
+	a.Run(ctx, statCh, ticker.New(ctx, time.Second*time.Duration(config.ReportInterval)))
 }
