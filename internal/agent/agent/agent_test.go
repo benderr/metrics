@@ -12,9 +12,6 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-//mockgen -destination=internal/agent/agent/mocks/mocks.go -package=mocks github.com/benderr/metrics/internal/agent/agent IReport
-//mockgen -destination=internal/agent/sender/mocks/mocks.go -package=mocksender github.com/benderr/metrics/internal/agent/sender MetricSender
-
 func TestAgent_Run(t *testing.T) {
 
 	t.Run("should update report", func(t *testing.T) {
