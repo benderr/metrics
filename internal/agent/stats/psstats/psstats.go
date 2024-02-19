@@ -10,22 +10,22 @@ import (
 	"github.com/benderr/metrics/internal/agent/stats"
 )
 
-type psStats struct {
-	PoolInterval int
+type PsStats struct {
+	interval time.Duration
 }
 
-// Сбор метрик из gopsutil
-func New(poolInterval int) *psStats {
-	return &psStats{
-		PoolInterval: poolInterval,
+// New return object for collect gopsutil metrics
+func New(t time.Duration) *PsStats {
+	return &PsStats{
+		interval: t,
 	}
 }
 
-func (m *psStats) Collect(ctx context.Context) <-chan []stats.Item {
+func (m *PsStats) Collect(ctx context.Context) <-chan []stats.Item {
 	outCh := make(chan []stats.Item)
 	go func() {
 		defer close(outCh)
-		pollTicker := time.NewTicker(time.Second * time.Duration(m.PoolInterval))
+		pollTicker := time.NewTicker(m.interval)
 		defer pollTicker.Stop()
 		for {
 			select {
@@ -40,7 +40,7 @@ func (m *psStats) Collect(ctx context.Context) <-chan []stats.Item {
 	return outCh
 }
 
-func (m *psStats) getStats() []stats.Item {
+func (m *PsStats) getStats() []stats.Item {
 	res := make([]stats.Item, 0)
 	if v, err := mem.VirtualMemory(); err == nil {
 		res = append(res, stats.Item{Type: "gauge", Name: "TotalMemory", Value: float64(v.Total)})

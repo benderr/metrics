@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"time"
 
 	"github.com/benderr/metrics/internal/agent/report"
 	"github.com/benderr/metrics/internal/agent/sender"
@@ -10,14 +9,19 @@ import (
 )
 
 type Agent struct {
-	PoolInterval int
-	sender       sender.MetricSender
+	sender sender.MetricSender
+	report IReport
 }
 
-func New(poolInterval int, sender sender.MetricSender) *Agent {
+type IReport interface {
+	Update(items []stats.Item)
+	GetList() []report.MetricItem
+}
+
+func New(sender sender.MetricSender, report IReport) *Agent {
 	return &Agent{
-		PoolInterval: poolInterval,
-		sender:       sender,
+		sender: sender,
+		report: report,
 	}
 }
 
@@ -25,16 +29,15 @@ func (a *Agent) SendMetrics(metrics []report.MetricItem) error {
 	return a.sender.Send(metrics)
 }
 
-func (a *Agent) Run(ctx context.Context, in <-chan []stats.Item, sendSignal <-chan time.Time) {
-	r := report.New()
+func (a *Agent) Run(ctx context.Context, in <-chan []stats.Item, sendSignal <-chan struct{}) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case v := <-in:
-			r.Update(v)
+			a.report.Update(v)
 		case <-sendSignal:
-			a.SendMetrics(r.GetList())
+			a.SendMetrics(a.report.GetList())
 		}
 	}
 }

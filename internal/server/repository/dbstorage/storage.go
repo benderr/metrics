@@ -83,11 +83,11 @@ func (m *MetricDBRepository) BulkUpdate(ctx context.Context, metrics []repositor
 		if mtr.Value != nil {
 			value = sql.NullFloat64{Valid: true, Float64: *mtr.Value}
 		}
-		_, err := stmt.ExecContext(ctx, mtr.ID, mtr.MType, delta, value)
+		_, err2 := stmt.ExecContext(ctx, mtr.ID, mtr.MType, delta, value)
 
-		if err != nil {
+		if err2 != nil {
 			stmt.Close()
-			return err
+			return err2
 		}
 	}
 

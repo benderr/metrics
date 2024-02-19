@@ -18,6 +18,8 @@ const (
 	BULK
 )
 
+const maxRetries int = 3
+
 // MustLoad fabric method returned service for send metric to server.
 //
 // Send strategy depends SenderMode.
@@ -30,7 +32,7 @@ const (
 func MustLoad(mode SenderMode, config *agentconfig.EnvConfig, logger logger.Logger) sender.MetricSender {
 
 	client := apiclient.New(string(config.Server), config.SecretKey, logger)
-	client.SetCustomRetries(3)
+	client.SetCustomRetries(maxRetries)
 	client.SetSignedHeader()
 
 	var newsender sender.MetricSender

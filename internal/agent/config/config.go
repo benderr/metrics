@@ -37,20 +37,26 @@ type EnvConfig struct {
 	RateLimit      int           `env:"RATE_LIMIT"`
 }
 
+const (
+	defaultReportInterval int = 10
+	defaultPoolInterval   int = 2
+	defaultRateInterval   int = 10
+)
+
 var config = EnvConfig{
 	Server:         "http://localhost:8080",
-	ReportInterval: 10,
-	PollInterval:   2,
+	ReportInterval: defaultReportInterval,
+	PollInterval:   defaultPoolInterval,
 	SecretKey:      "",
-	RateLimit:      10,
+	RateLimit:      defaultRateInterval,
 }
 
 func init() {
 	flag.Var(&config.Server, "a", "address and port to run server (with http transport)")
-	flag.IntVar(&config.ReportInterval, "r", 10, "report send to server interval (seconds)")
-	flag.IntVar(&config.PollInterval, "p", 2, "create report interval (seconds)")
+	flag.IntVar(&config.ReportInterval, "r", defaultReportInterval, "report send to server interval (seconds)")
+	flag.IntVar(&config.PollInterval, "p", defaultPoolInterval, "create report interval (seconds)")
 	flag.StringVar(&config.SecretKey, "k", "", "sha256 based secret key")
-	flag.IntVar(&config.RateLimit, "l", 10, "rate limitter")
+	flag.IntVar(&config.RateLimit, "l", defaultRateInterval, "rate limitter")
 }
 
 func Parse() (*EnvConfig, error) {

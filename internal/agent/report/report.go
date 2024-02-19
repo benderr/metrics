@@ -1,3 +1,4 @@
+// Package report contain methods for concurentrly update storage for metrics
 package report
 
 import (
