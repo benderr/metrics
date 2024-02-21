@@ -35,6 +35,7 @@ type EnvConfig struct {
 	PollInterval   int           `env:"POLL_INTERVAL"`
 	SecretKey      string        `env:"KEY"`
 	RateLimit      int           `env:"RATE_LIMIT"`
+	CryptoKey      string        `env:"CRYPTO_KEY"`
 }
 
 const (
@@ -49,6 +50,7 @@ var config = EnvConfig{
 	PollInterval:   defaultPoolInterval,
 	SecretKey:      "",
 	RateLimit:      defaultRateInterval,
+	CryptoKey:      "",
 }
 
 func init() {
@@ -57,6 +59,7 @@ func init() {
 	flag.IntVar(&config.PollInterval, "p", defaultPoolInterval, "create report interval (seconds)")
 	flag.StringVar(&config.SecretKey, "k", "", "sha256 based secret key")
 	flag.IntVar(&config.RateLimit, "l", defaultRateInterval, "rate limitter")
+	flag.StringVar(&config.CryptoKey, "crypto-key", "", "crypto file for TLS")
 }
 
 func Parse() (*EnvConfig, error) {

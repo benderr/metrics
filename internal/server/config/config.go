@@ -40,6 +40,7 @@ type Config struct {
 	Restore         bool          `env:"RESTORE"`
 	DatabaseDsn     string        `env:"DATABASE_DSN"`
 	SecretKey       string        `env:"KEY"`
+	CryptoKey       string        `env:"CRYPTO_KEY"`
 }
 
 var config = Config{
@@ -49,6 +50,7 @@ var config = Config{
 	Restore:         true,
 	DatabaseDsn:     "",
 	SecretKey:       "",
+	CryptoKey:       "",
 }
 
 func init() {
@@ -58,6 +60,7 @@ func init() {
 	flag.BoolVar(&config.Restore, "r", true, "restore report from file")
 	flag.StringVar(&config.DatabaseDsn, "d", "", "connection string for postgre")
 	flag.StringVar(&config.SecretKey, "k", "", "sha256 based secret key")
+	flag.StringVar(&config.CryptoKey, "crypto-key", "", "crypto file for TLS")
 }
 
 func MustLoad() *Config {
