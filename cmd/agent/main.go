@@ -48,6 +48,8 @@ func main() {
 		"-report interval", config.ReportInterval,
 		"-pool interval", config.PollInterval,
 		"-key ", config.SecretKey,
+		"-config", config.ConfigFile,
+		"-crypto-key", config.CryptoKey,
 	)
 
 	sender := metricsender.MustLoad(metricsender.BULK, config, l)
