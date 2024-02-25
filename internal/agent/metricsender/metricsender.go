@@ -39,10 +39,6 @@ func MustLoad(mode SenderMode, config *agentconfig.EnvConfig, logger logger.Logg
 	client.SetSignedHeader()
 
 	if len(config.CryptoKey) > 0 {
-		client.SetRootCertificate(config.CryptoKey)
-	}
-
-	if len(config.CryptoKey) != 0 {
 		f, err := os.ReadFile(config.CryptoKey)
 		if err != nil {
 			log.Fatal("error open CryptoKey file", config.CryptoKey)

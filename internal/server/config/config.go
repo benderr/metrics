@@ -67,7 +67,8 @@ func init() {
 	flag.BoolVar(&config.Restore, "r", true, "restore report from file")
 	flag.StringVar(&config.DatabaseDsn, "d", "", "connection string for postgre")
 	flag.StringVar(&config.SecretKey, "k", "", "sha256 based secret key")
-	flag.StringVar(&config.CryptoKey, "crypto-key", "", "crypto file for TLS")
+	flag.StringVar(&config.CryptoKey, "crypto-key", "", "private key file for TLS")
+	flag.StringVar(&config.PublicKey, "public-key", "", "public cert file for TLS")
 }
 
 func MustLoad() *Config {
