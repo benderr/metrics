@@ -62,5 +62,5 @@ func (a *App) Run(ctx context.Context) error {
 
 	h.AddHandlers(chiRouter)
 
-	return http.ListenAndServe(string(a.config.Server), chiRouter)
+	return http.ListenAndServeTLS(string(a.config.Server), "./certs/public.crt", a.config.CryptoKey, chiRouter)
 }

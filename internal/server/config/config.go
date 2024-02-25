@@ -43,6 +43,7 @@ type Config struct {
 	DatabaseDsn     string        `env:"DATABASE_DSN"`
 	SecretKey       string        `env:"KEY"`
 	CryptoKey       string        `env:"CRYPTO_KEY"`
+	PublicKey       string        `env:"PUBLIC_KEY"`
 	ConfigFile      string        `env:"CONFIG"`
 }
 
