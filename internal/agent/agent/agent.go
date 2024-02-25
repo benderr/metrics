@@ -2,6 +2,8 @@ package agent
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/benderr/metrics/internal/agent/report"
 	"github.com/benderr/metrics/internal/agent/sender"
@@ -37,7 +39,11 @@ func (a *Agent) Run(ctx context.Context, in <-chan []stats.Item, sendSignal <-ch
 		case v := <-in:
 			a.report.Update(v)
 		case <-sendSignal:
+			fmt.Println("START SEND")
 			a.SendMetrics(a.report.GetList())
+			time.Sleep(time.Second * 5)
+			fmt.Println("STOP SEND")
+
 		}
 	}
 }

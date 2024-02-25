@@ -3,11 +3,13 @@ package app
 
 import (
 	"context"
+	"log"
 	"net/http"
-
-	"net/http/pprof"
+	"os/signal"
+	"syscall"
 
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 
 	"github.com/benderr/metrics/internal/server/config"
 	"github.com/benderr/metrics/internal/server/handlers"
@@ -51,16 +53,32 @@ func (a *App) Run(ctx context.Context) error {
 	chiRouter.Use(mwgzip.TransformWriter)
 	chiRouter.Use(mwgzip.TransformReader)
 
-	// register pprof methods
-	chiRouter.Route("/debug/pprof", func(r chi.Router) {
-		r.HandleFunc("/cmdline", pprof.Cmdline)
-		r.HandleFunc("/profile", pprof.Profile)
-		r.HandleFunc("/symbol", pprof.Symbol)
-		r.HandleFunc("/trace", pprof.Trace)
-		r.HandleFunc("/*", pprof.Index)
-	})
+	chiRouter.Mount("/debug", middleware.Profiler())
 
 	h.AddHandlers(chiRouter)
 
-	return http.ListenAndServeTLS(string(a.config.Server), a.config.PublicKey, a.config.CryptoKey, chiRouter)
+	srv := http.Server{Addr: string(a.config.Server), Handler: chiRouter}
+
+	ctxStop, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+	defer stop()
+
+	idleConnsClosed := make(chan struct{})
+
+	go func() {
+		<-ctxStop.Done()
+
+		if err := srv.Shutdown(context.Background()); err != nil {
+			log.Fatal("shutdown error ", err)
+		}
+
+		close(idleConnsClosed)
+	}()
+
+	if err := srv.ListenAndServeTLS(a.config.PublicKey, a.config.CryptoKey); err != http.ErrServerClosed {
+		return err
+	}
+
+	<-idleConnsClosed
+	return nil
+
 }

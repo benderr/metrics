@@ -18,6 +18,8 @@ package main
 import (
 	"context"
 	"log"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/benderr/metrics/internal/agent/agent"
@@ -63,5 +65,8 @@ func main() {
 
 	statCh := allstats.Join(ctx, stats1, stats2)
 
-	a.Run(ctx, statCh, ticker.New(ctx, time.Second*time.Duration(config.ReportInterval)))
+	ctxStop, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+	defer stop()
+	a.Run(ctxStop, statCh, ticker.New(ctx, time.Second*time.Duration(config.ReportInterval)))
+	l.Infoln("stopped")
 }
