@@ -1,7 +1,7 @@
 package sign
 
 import (
-	"github.com/benderr/metrics/internal/server/logger"
+	"github.com/benderr/metrics/pkg/logger"
 )
 
 func New(secret string, logger logger.Logger) *signValidator {

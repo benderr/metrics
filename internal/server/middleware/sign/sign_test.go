@@ -11,8 +11,8 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/benderr/metrics/internal/server/logger"
 	"github.com/benderr/metrics/internal/server/middleware/sign"
+	"github.com/benderr/metrics/pkg/logger"
 	signer "github.com/benderr/metrics/pkg/sign"
 )
 

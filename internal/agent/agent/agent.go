@@ -2,6 +2,8 @@ package agent
 
 import (
 	"context"
+	"os/signal"
+	"syscall"
 
 	"github.com/benderr/metrics/internal/agent/report"
 	"github.com/benderr/metrics/internal/agent/sender"
@@ -30,9 +32,12 @@ func (a *Agent) SendMetrics(metrics []report.MetricItem) error {
 }
 
 func (a *Agent) Run(ctx context.Context, in <-chan []stats.Item, sendSignal <-chan struct{}) {
+	ctxStop, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+	defer stop()
+
 	for {
 		select {
-		case <-ctx.Done():
+		case <-ctxStop.Done():
 			return
 		case v := <-in:
 			a.report.Update(v)

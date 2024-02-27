@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 
-	"github.com/benderr/metrics/internal/agent/logger"
+	"github.com/benderr/metrics/pkg/logger"
 	"github.com/benderr/metrics/pkg/sign"
 )
 

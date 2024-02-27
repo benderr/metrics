@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 
 	"github.com/benderr/metrics/internal/agent/apiclient"
-	"github.com/benderr/metrics/internal/agent/logger"
 	"github.com/benderr/metrics/internal/agent/report"
+	"github.com/benderr/metrics/pkg/logger"
 )
 
 // Третья версия, с передачей массива данных

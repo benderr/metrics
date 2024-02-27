@@ -6,11 +6,11 @@ import (
 
 	"github.com/benderr/metrics/internal/agent/apiclient"
 	agentconfig "github.com/benderr/metrics/internal/agent/config"
-	"github.com/benderr/metrics/internal/agent/logger"
 	"github.com/benderr/metrics/internal/agent/sender"
 	"github.com/benderr/metrics/internal/agent/sender/bulksender"
 	"github.com/benderr/metrics/internal/agent/sender/jsonsender"
 	"github.com/benderr/metrics/internal/agent/sender/urlsender"
+	"github.com/benderr/metrics/pkg/logger"
 )
 
 type SenderMode int

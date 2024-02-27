@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/benderr/metrics/internal/server/logger"
+	"github.com/benderr/metrics/pkg/logger"
 )
 
 type (
