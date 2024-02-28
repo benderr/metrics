@@ -1,0 +1,8 @@
+{
+    "address": "localhost:8089",
+    "restore": true,
+    "store_interval": 1,
+    "store_file": "./metrics.json",
+    "database_dsn": "",
+    "crypto_key": "/path/to/key.pem"
+}

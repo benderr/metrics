@@ -1,13 +1,16 @@
 package metricsender
 
 import (
+	"log"
+	"os"
+
 	"github.com/benderr/metrics/internal/agent/apiclient"
 	agentconfig "github.com/benderr/metrics/internal/agent/config"
-	"github.com/benderr/metrics/internal/agent/logger"
 	"github.com/benderr/metrics/internal/agent/sender"
 	"github.com/benderr/metrics/internal/agent/sender/bulksender"
 	"github.com/benderr/metrics/internal/agent/sender/jsonsender"
 	"github.com/benderr/metrics/internal/agent/sender/urlsender"
+	"github.com/benderr/metrics/pkg/logger"
 )
 
 type SenderMode int
@@ -35,6 +38,15 @@ func MustLoad(mode SenderMode, config *agentconfig.EnvConfig, logger logger.Logg
 	client.SetCustomRetries(maxRetries)
 	client.SetSignedHeader()
 
+	if len(config.CryptoKey) > 0 {
+		f, err := os.ReadFile(config.CryptoKey)
+		if err != nil {
+			log.Fatal("error open CryptoKey file", config.CryptoKey)
+		}
+		client.SetRootCertificateFromString(string(f))
+		logger.Infoln("Certificate settled")
+	}
+
 	var newsender sender.MetricSender
 
 	switch mode {
@@ -45,7 +57,7 @@ func MustLoad(mode SenderMode, config *agentconfig.EnvConfig, logger logger.Logg
 	case BULK:
 		newsender = bulksender.New(client, logger)
 	default:
-		panic("incorrect sender mode")
+		log.Fatal("incorrect sender mode")
 	}
 
 	return newsender

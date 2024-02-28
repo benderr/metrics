@@ -25,13 +25,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/benderr/metrics/internal/server/app"
 	"github.com/benderr/metrics/internal/server/config"
-	"github.com/benderr/metrics/internal/server/logger"
+	"github.com/benderr/metrics/pkg/logger"
 )
 
 var (
@@ -41,27 +40,25 @@ var (
 )
 
 func main() {
-	fmt.Println("Build version:", buildVersion)
-	fmt.Println("Build date:", buildDate)
-	fmt.Println("Build commit:", buildCommit)
-
-	config := config.MustLoad()
-
-	logger, sync := logger.New()
-
+	l, sync := logger.New()
 	defer sync()
 
-	logger.Infow(
+	l.Infoln("Build version:", buildVersion)
+	l.Infoln("Build date:", buildDate)
+	l.Infoln("Build commit:", buildCommit)
+
+	c := config.MustLoad()
+
+	l.Infow(
 		"Starting server with",
-		"config", config,
+		"config", c,
 	)
 
-	app := app.New(config, logger)
+	a := app.New(c, l)
 
 	ctx := context.Background()
-	err := app.Run(ctx)
 
-	if err != nil {
+	if err := a.Run(ctx); err != nil {
 		panic(err)
 	}
 }

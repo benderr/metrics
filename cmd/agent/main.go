@@ -22,13 +22,13 @@ import (
 
 	"github.com/benderr/metrics/internal/agent/agent"
 	agentconfig "github.com/benderr/metrics/internal/agent/config"
-	"github.com/benderr/metrics/internal/agent/logger"
 	"github.com/benderr/metrics/internal/agent/metricsender"
 	"github.com/benderr/metrics/internal/agent/report"
 	"github.com/benderr/metrics/internal/agent/stats/allstats"
 	"github.com/benderr/metrics/internal/agent/stats/memstats"
 	"github.com/benderr/metrics/internal/agent/stats/psstats"
 	"github.com/benderr/metrics/internal/agent/ticker"
+	"github.com/benderr/metrics/pkg/logger"
 )
 
 func main() {
@@ -48,6 +48,8 @@ func main() {
 		"-report interval", config.ReportInterval,
 		"-pool interval", config.PollInterval,
 		"-key ", config.SecretKey,
+		"-config", config.ConfigFile,
+		"-crypto-key", config.CryptoKey,
 	)
 
 	sender := metricsender.MustLoad(metricsender.BULK, config, l)
@@ -62,4 +64,5 @@ func main() {
 	statCh := allstats.Join(ctx, stats1, stats2)
 
 	a.Run(ctx, statCh, ticker.New(ctx, time.Second*time.Duration(config.ReportInterval)))
+	l.Infoln("stopped")
 }

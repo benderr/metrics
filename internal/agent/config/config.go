@@ -1,8 +1,10 @@
 package agentconfig
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
+	"os"
 	"regexp"
 	"strings"
 
@@ -35,6 +37,8 @@ type EnvConfig struct {
 	PollInterval   int           `env:"POLL_INTERVAL"`
 	SecretKey      string        `env:"KEY"`
 	RateLimit      int           `env:"RATE_LIMIT"`
+	CryptoKey      string        `env:"CRYPTO_KEY"`
+	ConfigFile     string        `env:"CONFIG"`
 }
 
 const (
@@ -49,14 +53,19 @@ var config = EnvConfig{
 	PollInterval:   defaultPoolInterval,
 	SecretKey:      "",
 	RateLimit:      defaultRateInterval,
+	CryptoKey:      "",
+	ConfigFile:     "",
 }
 
 func init() {
+	flag.Func("c", "file with json config", parseConfigFile)      // First try to parse config.json
+	flag.Func("config", "file with json config", parseConfigFile) // First try to parse config.json
 	flag.Var(&config.Server, "a", "address and port to run server (with http transport)")
 	flag.IntVar(&config.ReportInterval, "r", defaultReportInterval, "report send to server interval (seconds)")
 	flag.IntVar(&config.PollInterval, "p", defaultPoolInterval, "create report interval (seconds)")
 	flag.StringVar(&config.SecretKey, "k", "", "sha256 based secret key")
 	flag.IntVar(&config.RateLimit, "l", defaultRateInterval, "rate limitter")
+	flag.StringVar(&config.CryptoKey, "crypto-key", "", "crypto file for TLS")
 }
 
 func Parse() (*EnvConfig, error) {
@@ -74,4 +83,42 @@ func transformServerAddress(address *ServerAddress) {
 	if !strings.HasPrefix(address.String(), "https://") && !strings.HasPrefix(address.String(), "http://") {
 		*address = ServerAddress("http://" + address.String())
 	}
+}
+
+type jsonConfig struct {
+	Address        string `json:"address"`
+	ReportInterval *int   `json:"report_interval"`
+	PollInterval   *int   `json:"poll_interval"`
+	CryptoKey      string `json:"crypto_key"`
+}
+
+func parseConfigFile(filePath string) error {
+	config.ConfigFile = filePath
+
+	f, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	d := json.NewDecoder(f)
+	fileConfig := &jsonConfig{}
+
+	if err := d.Decode(fileConfig); err != nil {
+		return err
+	}
+
+	if err = config.Server.Set(fileConfig.Address); err != nil {
+		return err
+	}
+
+	if fileConfig.ReportInterval != nil {
+		config.ReportInterval = *fileConfig.ReportInterval
+	}
+
+	if fileConfig.PollInterval != nil {
+		config.PollInterval = *fileConfig.PollInterval
+	}
+
+	config.CryptoKey = fileConfig.CryptoKey
+
+	return nil
 }
