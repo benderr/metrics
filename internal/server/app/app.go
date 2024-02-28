@@ -74,8 +74,14 @@ func (a *App) Run(ctx context.Context) error {
 		close(idleConnsClosed)
 	}()
 
-	if err := srv.ListenAndServeTLS(a.config.PublicKey, a.config.CryptoKey); err != http.ErrServerClosed {
-		return err
+	if len(a.config.PublicKey) > 0 && len(a.config.CryptoKey) > 0 {
+		if err := srv.ListenAndServeTLS(a.config.PublicKey, a.config.CryptoKey); err != http.ErrServerClosed {
+			return err
+		}
+	} else {
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			return err
+		}
 	}
 
 	<-idleConnsClosed
