@@ -10,6 +10,7 @@ import (
 	"github.com/benderr/metrics/internal/agent/sender/bulksender"
 	"github.com/benderr/metrics/internal/agent/sender/jsonsender"
 	"github.com/benderr/metrics/internal/agent/sender/urlsender"
+	"github.com/benderr/metrics/pkg/ipcheck"
 	"github.com/benderr/metrics/pkg/logger"
 )
 
@@ -37,6 +38,14 @@ func MustLoad(mode SenderMode, config *agentconfig.EnvConfig, logger logger.Logg
 	client := apiclient.New(string(config.Server), config.SecretKey, logger)
 	client.SetCustomRetries(maxRetries)
 	client.SetSignedHeader()
+
+	ip, err := ipcheck.GetHostIP()
+
+	if err != nil {
+		log.Fatal("can't set host IP", err)
+	}
+	logger.Infoln("HOST IP: ", ip.String())
+	client.SetHeader("X-Real-IP", ip.String())
 
 	if len(config.CryptoKey) > 0 {
 		f, err := os.ReadFile(config.CryptoKey)
