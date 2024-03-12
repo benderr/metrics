@@ -17,6 +17,7 @@ import (
 	"github.com/benderr/metrics/internal/server/middleware/sign"
 	"github.com/benderr/metrics/internal/server/repository/storage"
 	"github.com/benderr/metrics/pkg/gziper"
+	"github.com/benderr/metrics/pkg/ipcheck"
 	"github.com/benderr/metrics/pkg/logger"
 )
 
@@ -52,6 +53,7 @@ func (a *App) Run(ctx context.Context) error {
 	chiRouter.Use(mwlog.Middleware)
 	chiRouter.Use(mwgzip.TransformWriter)
 	chiRouter.Use(mwgzip.TransformReader)
+	chiRouter.Use(ipcheck.Middleware(a.config.TrustedSubnet))
 
 	chiRouter.Mount("/debug", middleware.Profiler())
 

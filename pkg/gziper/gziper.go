@@ -4,7 +4,6 @@ package gziper
 import (
 	"compress/gzip"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -56,7 +55,6 @@ func (g *GzipCompressor) TransformReader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		contentEncoding := r.Header.Get("Content-Encoding")
 		sendsGzip := strings.Contains(contentEncoding, "gzip")
-		fmt.Println(contentEncoding, sendsGzip)
 		if sendsGzip {
 			cr, err := newCompressReader(r.Body)
 			if err != nil {

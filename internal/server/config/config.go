@@ -45,6 +45,7 @@ type Config struct {
 	CryptoKey       string        `env:"CRYPTO_KEY"`
 	PublicKey       string        `env:"PUBLIC_KEY"`
 	ConfigFile      string        `env:"CONFIG"`
+	TrustedSubnet   string        `env:"TRUSTED_SUBNET"`
 }
 
 var config = Config{
@@ -69,6 +70,7 @@ func init() {
 	flag.StringVar(&config.SecretKey, "k", "", "sha256 based secret key")
 	flag.StringVar(&config.CryptoKey, "crypto-key", "", "private key file for TLS")
 	flag.StringVar(&config.PublicKey, "public-key", "", "public cert file for TLS")
+	flag.StringVar(&config.TrustedSubnet, "t", "", "trusted subnet (CIDR)")
 }
 
 func MustLoad() *Config {
@@ -90,6 +92,7 @@ type jsonConfig struct {
 	FileStoragePath string `json:"store_file"`
 	DatabaseDsn     string `json:"database_dsn"`
 	CryptoKey       string `json:"crypto_key"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 }
 
 func parseConfigFile(filePath string) error {
@@ -118,6 +121,7 @@ func parseConfigFile(filePath string) error {
 	config.Restore = fileConfig.Restore
 	config.FileStoragePath = fileConfig.FileStoragePath
 	config.DatabaseDsn = fileConfig.DatabaseDsn
+	config.TrustedSubnet = fileConfig.TrustedSubnet
 
 	return nil
 }
