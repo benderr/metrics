@@ -27,8 +27,8 @@ func New(sender sender.MetricSender, report IReport) *Agent {
 	}
 }
 
-func (a *Agent) SendMetrics(metrics []report.MetricItem) error {
-	return a.sender.Send(metrics)
+func (a *Agent) SendMetrics(ctx context.Context, metrics []report.MetricItem) error {
+	return a.sender.Send(ctx, metrics)
 }
 
 func (a *Agent) Run(ctx context.Context, in <-chan []stats.Item, sendSignal <-chan struct{}) {
@@ -42,7 +42,7 @@ func (a *Agent) Run(ctx context.Context, in <-chan []stats.Item, sendSignal <-ch
 		case v := <-in:
 			a.report.Update(v)
 		case <-sendSignal:
-			a.SendMetrics(a.report.GetList())
+			a.SendMetrics(ctx, a.report.GetList())
 		}
 	}
 }

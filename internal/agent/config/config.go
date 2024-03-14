@@ -31,6 +31,25 @@ func (address *ServerAddress) Set(flagValue string) error {
 	return nil
 }
 
+func (address *ServerAddress) HTTP() string {
+	if !strings.HasPrefix(address.String(), "https://") && !strings.HasPrefix(address.String(), "http://") {
+		return "http://" + address.String()
+	}
+	return address.String()
+}
+
+func (address *ServerAddress) GRPC() string {
+	if strings.HasPrefix(address.String(), "https://") {
+		return strings.TrimPrefix(address.String(), "https://")
+	}
+
+	if strings.HasPrefix(address.String(), "http://") {
+		return strings.TrimPrefix(address.String(), "http://")
+	}
+
+	return address.String()
+}
+
 type EnvConfig struct {
 	Server         ServerAddress `env:"ADDRESS"`
 	ReportInterval int           `env:"REPORT_INTERVAL"`
@@ -39,6 +58,7 @@ type EnvConfig struct {
 	RateLimit      int           `env:"RATE_LIMIT"`
 	CryptoKey      string        `env:"CRYPTO_KEY"`
 	ConfigFile     string        `env:"CONFIG"`
+	Mode           string        `env:"MODE"`
 }
 
 const (
@@ -55,6 +75,7 @@ var config = EnvConfig{
 	RateLimit:      defaultRateInterval,
 	CryptoKey:      "",
 	ConfigFile:     "",
+	Mode:           "bulk",
 }
 
 func init() {
@@ -66,6 +87,7 @@ func init() {
 	flag.StringVar(&config.SecretKey, "k", "", "sha256 based secret key")
 	flag.IntVar(&config.RateLimit, "l", defaultRateInterval, "rate limitter")
 	flag.StringVar(&config.CryptoKey, "crypto-key", "", "crypto file for TLS")
+	flag.StringVar(&config.Mode, "m", "bulk", "send to server mode: url, json, bulk, gsingle (grpc by metric), gbulk (grpc bulk flow), default bulk")
 }
 
 func Parse() (*EnvConfig, error) {
@@ -73,16 +95,7 @@ func Parse() (*EnvConfig, error) {
 
 	err := env.Parse(&config)
 
-	transformServerAddress(&config.Server)
-
 	return &config, err
-}
-
-// resty нужен протокол, в тестах указывается без протокола, обходим
-func transformServerAddress(address *ServerAddress) {
-	if !strings.HasPrefix(address.String(), "https://") && !strings.HasPrefix(address.String(), "http://") {
-		*address = ServerAddress("http://" + address.String())
-	}
 }
 
 type jsonConfig struct {
@@ -90,6 +103,7 @@ type jsonConfig struct {
 	ReportInterval *int   `json:"report_interval"`
 	PollInterval   *int   `json:"poll_interval"`
 	CryptoKey      string `json:"crypto_key"`
+	Mode           string `json:"mode"`
 }
 
 func parseConfigFile(filePath string) error {
@@ -119,6 +133,8 @@ func parseConfigFile(filePath string) error {
 	}
 
 	config.CryptoKey = fileConfig.CryptoKey
+
+	config.Mode = fileConfig.Mode
 
 	return nil
 }

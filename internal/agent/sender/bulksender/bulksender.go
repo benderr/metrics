@@ -3,6 +3,7 @@ package bulksender
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 
 	"github.com/benderr/metrics/internal/agent/apiclient"
@@ -24,7 +25,7 @@ type BulkSender struct {
 	log    logger.Logger
 }
 
-func (b *BulkSender) Send(metrics []report.MetricItem) error {
+func (b *BulkSender) Send(ctx context.Context, metrics []report.MetricItem) error {
 
 	if len(metrics) == 0 {
 		return nil
@@ -44,6 +45,7 @@ func (b *BulkSender) Send(metrics []report.MetricItem) error {
 
 	req := b.client.
 		R().
+		SetContext(ctx).
 		SetHeader("Content-Type", "application/json; charset=utf-8").
 		SetHeader("Content-Encoding", "gzip").
 		SetBody(body)

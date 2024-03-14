@@ -66,7 +66,7 @@ func TestAgent_Run(t *testing.T) {
 		}()
 
 		reportMock.EXPECT().GetList().Return(sendList)
-		senderMock.EXPECT().Send(sendList).Return(nil)
+		senderMock.EXPECT().Send(ctx, sendList).Return(nil)
 
 		a.Run(ctx, in, ch)
 	})
