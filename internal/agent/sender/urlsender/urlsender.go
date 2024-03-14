@@ -1,6 +1,7 @@
 package urlsender
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -22,7 +23,7 @@ type URLSender struct {
 	rateLimit int
 }
 
-func (h *URLSender) Send(metrics []report.MetricItem) error {
+func (h *URLSender) Send(ctx context.Context, metrics []report.MetricItem) error {
 	allErrors := worker.Run(h.rateLimit, metrics, func(mi *report.MetricItem) error {
 		switch mi.MType {
 		case "counter":
@@ -32,7 +33,7 @@ func (h *URLSender) Send(metrics []report.MetricItem) error {
 
 		case "gauge":
 			url := fmt.Sprintf("/%v/%v/%v/%v", "update", "gauge", mi.ID, *mi.Value)
-			_, err := h.client.R().Post(url)
+			_, err := h.client.R().SetContext(ctx).Post(url)
 			return err
 		}
 		return nil

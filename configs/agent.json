@@ -1,5 +1,7 @@
 {
-    "address": "localhost:8083", 
-    "poll_interval": 100, 
-    "crypto_key": "./certs/public.pem"
+    "address": "localhost:8089", 
+    "poll_interval": 2, 
+    "report_interval": 3,
+    "crypto_key": "./certs/public.crt",
+    "mode": "grpc_single"
 } 

@@ -9,6 +9,7 @@
 package mocksender
 
 import (
+	context "context"
 	reflect "reflect"
 
 	report "github.com/benderr/metrics/internal/agent/report"
@@ -39,15 +40,15 @@ func (m *MockMetricSender) EXPECT() *MockMetricSenderMockRecorder {
 }
 
 // Send mocks base method.
-func (m *MockMetricSender) Send(arg0 []report.MetricItem) error {
+func (m *MockMetricSender) Send(arg0 context.Context, arg1 []report.MetricItem) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Send", arg0)
+	ret := m.ctrl.Call(m, "Send", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Send indicates an expected call of Send.
-func (mr *MockMetricSenderMockRecorder) Send(arg0 any) *gomock.Call {
+func (mr *MockMetricSenderMockRecorder) Send(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockMetricSender)(nil).Send), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockMetricSender)(nil).Send), arg0, arg1)
 }

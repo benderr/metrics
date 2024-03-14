@@ -28,6 +28,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
+	"github.com/benderr/metrics/internal/gserver/grpcapp"
 	"github.com/benderr/metrics/internal/server/app"
 	"github.com/benderr/metrics/internal/server/config"
 	"github.com/benderr/metrics/pkg/logger"
@@ -54,11 +55,18 @@ func main() {
 		"config", c,
 	)
 
-	a := app.New(c, l)
-
 	ctx := context.Background()
 
-	if err := a.Run(ctx); err != nil {
-		panic(err)
+	if c.Transport == "grpc" {
+		if err := grpcapp.New(c, l).Run(ctx); err != nil {
+			panic(err)
+		}
+	} else if c.Transport == "http" {
+		if err := app.New(c, l).Run(ctx); err != nil {
+			panic(err)
+		}
+	} else {
+		panic("unsupported transport")
 	}
+
 }

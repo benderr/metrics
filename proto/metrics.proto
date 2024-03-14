@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/benderr/metrics/proto";
+
+// option go_package = "gostudy/proto";
+enum MetricType {
+  UNSPECIFIED = 0;
+  COUNTER = 1;
+  GAUGE = 2;
+}
+
+message MetricItem {
+  string ID = 1;
+  MetricType MType = 2;
+  int64 Delta = 3;
+  double Value = 4;
+}
+
+message UpdateMetricRequest { MetricItem metric = 1; }
+
+message UpdateMetricResponse {
+  MetricItem metric = 1;
+  string error = 2;
+}
+
+message ListMetricRequest {}
+
+message ListMetricResponse { repeated MetricItem metrics = 1; }
+
+message GetMetricRequest {
+  string ID = 1;
+}
+
+message GetMetricResponse {
+  MetricItem metric = 1;
+  string error = 2;
+}
+
+message BulkUpdateMetricRequest { repeated MetricItem metrics = 1; }
+
+message BulkUpdateMetricResponse { string error = 1; }
+
+service Metrics {
+  rpc UpdateMetric(UpdateMetricRequest) returns (UpdateMetricResponse);
+  rpc ListMetric(ListMetricRequest) returns (ListMetricResponse);
+  rpc GetMetric(GetMetricRequest) returns (GetMetricResponse);
+  rpc BulkUpdateMetric(BulkUpdateMetricRequest) returns (BulkUpdateMetricResponse);
+}

@@ -50,9 +50,11 @@ func main() {
 		"-key ", config.SecretKey,
 		"-config", config.ConfigFile,
 		"-crypto-key", config.CryptoKey,
+		"-mode", config.Mode,
 	)
 
-	sender := metricsender.MustLoad(metricsender.BULK, config, l)
+	sender, close := metricsender.MustLoad(config, l)
+	defer close()
 
 	ctx := context.Background()
 

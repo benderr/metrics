@@ -1,6 +1,7 @@
 package jsonsender
 
 import (
+	"context"
 	"errors"
 
 	"github.com/benderr/metrics/internal/agent/apiclient"
@@ -21,9 +22,10 @@ type JSONSender struct {
 	rateLimit int
 }
 
-func (h *JSONSender) Send(metrics []report.MetricItem) error {
+func (h *JSONSender) Send(ctx context.Context, metrics []report.MetricItem) error {
 	allErrors := worker.Run(h.rateLimit, metrics, func(mi *report.MetricItem) error {
 		_, e := h.client.R().
+			SetContext(ctx).
 			SetHeader("Content-Type", "application/json").
 			SetHeader("Accept-Encoding", "gzip").
 			SetBody(mi).

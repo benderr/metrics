@@ -8,18 +8,14 @@ import (
 	agentconfig "github.com/benderr/metrics/internal/agent/config"
 	"github.com/benderr/metrics/internal/agent/sender"
 	"github.com/benderr/metrics/internal/agent/sender/bulksender"
+	"github.com/benderr/metrics/internal/agent/sender/grpcsender"
 	"github.com/benderr/metrics/internal/agent/sender/jsonsender"
 	"github.com/benderr/metrics/internal/agent/sender/urlsender"
+	"github.com/benderr/metrics/pkg/ipcheck"
 	"github.com/benderr/metrics/pkg/logger"
 )
 
 type SenderMode int
-
-const (
-	JSON SenderMode = iota
-	URL
-	BULK
-)
 
 const maxRetries int = 3
 
@@ -27,16 +23,54 @@ const maxRetries int = 3
 //
 // Send strategy depends SenderMode.
 //
-// URL - send the metric using the POST method, the information is sent in the URL.
+// url - send the metric using the POST method, the information is sent in the URL.
 //
-// JSON - send the metric using the POST method, the information is sent in the request.Body.
+// json - send the metric using the POST method, the information is sent in the request.Body.
 //
-// BULK - send metrics in batches using the POST method.
-func MustLoad(mode SenderMode, config *agentconfig.EnvConfig, logger logger.Logger) sender.MetricSender {
+// bulk - send metrics in batches using the POST method.
+//
+// grpc_single - send one metric using the GRPS method.
+//
+// grpc_bulk - send metrics in batches using the GRPS method.
+func MustLoad(config *agentconfig.EnvConfig, logger logger.Logger) (sender.MetricSender, func()) {
 
-	client := apiclient.New(string(config.Server), config.SecretKey, logger)
+	noop := func() {}
+
+	switch config.Mode {
+	case "url":
+		client := configureHTTPClient(config, logger)
+		newsender := urlsender.New(client, config.RateLimit)
+		return newsender, noop
+	case "json":
+		client := configureHTTPClient(config, logger)
+		newsender := jsonsender.New(client, config.RateLimit)
+		return newsender, noop
+	case "bulk":
+		client := configureHTTPClient(config, logger)
+		newsender := bulksender.New(client, logger)
+		return newsender, noop
+	case "grpc_single":
+		return grpcsender.New(config.Server.GRPC(), logger, false)
+	case "grpc_bulk":
+		return grpcsender.New(config.Server.GRPC(), logger, true)
+	default:
+		log.Fatal("incorrect sender mode")
+	}
+	return nil, noop
+}
+
+func configureHTTPClient(config *agentconfig.EnvConfig, logger logger.Logger) *apiclient.Client {
+	client := apiclient.New(config.Server.HTTP(), config.SecretKey, logger)
 	client.SetCustomRetries(maxRetries)
 	client.SetSignedHeader()
+
+	ip, err := ipcheck.GetHostIP()
+
+	if err != nil {
+		log.Fatal("can't set host IP", err)
+	}
+	logger.Infoln("HOST IP: ", ip.String())
+	client.SetHeader("X-Real-IP", ip.String())
 
 	if len(config.CryptoKey) > 0 {
 		f, err := os.ReadFile(config.CryptoKey)
@@ -46,19 +80,5 @@ func MustLoad(mode SenderMode, config *agentconfig.EnvConfig, logger logger.Logg
 		client.SetRootCertificateFromString(string(f))
 		logger.Infoln("Certificate settled")
 	}
-
-	var newsender sender.MetricSender
-
-	switch mode {
-	case URL:
-		newsender = urlsender.New(client, config.RateLimit)
-	case JSON:
-		newsender = jsonsender.New(client, config.RateLimit)
-	case BULK:
-		newsender = bulksender.New(client, logger)
-	default:
-		log.Fatal("incorrect sender mode")
-	}
-
-	return newsender
+	return client
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -34,7 +33,6 @@ func TestGzipCompressor_TransformReader(t *testing.T) {
 
 		require.NoError(t, err)
 
-		fmt.Println(model)
 		assert.Equal(t, model.ID, "1")
 		assert.Equal(t, model.Name, "Test")
 	})
