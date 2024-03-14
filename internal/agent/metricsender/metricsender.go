@@ -38,15 +38,15 @@ func MustLoad(config *agentconfig.EnvConfig, logger logger.Logger) (sender.Metri
 
 	switch config.Mode {
 	case "url":
-		client := configureHttpClient(config, logger)
+		client := configureHTTPClient(config, logger)
 		newsender := urlsender.New(client, config.RateLimit)
 		return newsender, noop
 	case "json":
-		client := configureHttpClient(config, logger)
+		client := configureHTTPClient(config, logger)
 		newsender := jsonsender.New(client, config.RateLimit)
 		return newsender, noop
 	case "bulk":
-		client := configureHttpClient(config, logger)
+		client := configureHTTPClient(config, logger)
 		newsender := bulksender.New(client, logger)
 		return newsender, noop
 	case "grpc_single":
@@ -59,7 +59,7 @@ func MustLoad(config *agentconfig.EnvConfig, logger logger.Logger) (sender.Metri
 	return nil, noop
 }
 
-func configureHttpClient(config *agentconfig.EnvConfig, logger logger.Logger) *apiclient.Client {
+func configureHTTPClient(config *agentconfig.EnvConfig, logger logger.Logger) *apiclient.Client {
 	client := apiclient.New(config.Server.HTTP(), config.SecretKey, logger)
 	client.SetCustomRetries(maxRetries)
 	client.SetSignedHeader()

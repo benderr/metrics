@@ -71,19 +71,19 @@ func TestMetricServer(t *testing.T) {
 
 		ctx := context.Background()
 		var value float64 = 10
-		metricId := "test"
+		metricID := "test"
 		repoMock.
 			EXPECT().
-			Get(ctx, metricId).
-			Return(&repository.Metrics{ID: metricId, MType: "gauge", Value: &value}, nil)
+			Get(ctx, metricID).
+			Return(&repository.Metrics{ID: metricID, MType: "gauge", Value: &value}, nil)
 
 		res, err := s.GetMetric(ctx, &proto.GetMetricRequest{
-			ID: metricId,
+			ID: metricID,
 		})
 
 		require.NoError(t, err)
 		assert.EqualValues(t, &proto.MetricItem{
-			ID:    metricId,
+			ID:    metricID,
 			MType: proto.MetricType_GAUGE,
 			Value: value,
 		}, res.Metric)
@@ -98,14 +98,14 @@ func TestMetricServer(t *testing.T) {
 		s := metricsserver.New(repoMock, &mockLog{}, "")
 
 		ctx := context.Background()
-		metricId := "test"
+		metricID := "test"
 		repoMock.
 			EXPECT().
-			Get(ctx, metricId).
+			Get(ctx, metricID).
 			Return(nil, nil)
 
 		_, err := s.GetMetric(ctx, &proto.GetMetricRequest{
-			ID: metricId,
+			ID: metricID,
 		})
 
 		assert.Error(t, err)
